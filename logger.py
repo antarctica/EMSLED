@@ -35,6 +35,13 @@ def startup():
 
   args=config.test_params.copy()
   args.update(config.hardware['AWG'])
+
+  if os.path.isfile("current.calib"):
+    f = open("current.calib", "r")
+    content = f.read()
+    f.close()
+    args.update(eval(content))
+
   logging.info("[LOGGER] Starting the AWG")
   AWG.configure2SineWave(**args) # configure for 2 sinewaves
 

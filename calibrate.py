@@ -14,11 +14,12 @@ import spi_awg as AWG
 import analogue_IO
 import setup_BB
 import follower
-import time # For testing only
+import time
 import config
 import numpy as np
 import logging
 import pprint
+import os
 
 
 def signal_handler(signum, frame):
@@ -68,7 +69,7 @@ def calibrate():
   logging.info("[CALIBRATION] Starting calibration procedure")
   global ADC
   target_coeff = 1
-  max_amp = 2**30 #Maximum signed int value / 2
+  max_amp = 2**31 #Maximum signed int value
   target_snr = 2
   parameters = {'bc': [], 'tx': []}
   args_adc = config.hardware['ADC'].copy()
@@ -126,7 +127,15 @@ def calibrate():
         parameters['tx'].append(tx_gain)
         parameters['bc'].append({'gain': bc_gain, 'ps': best_phase})
         break
-  print_parameters(parameters)
+  params = print_parameters(parameters)
+  filename = time.strftime(str(config.test_params['tx_freq']) + "Hz %Y%m%d-%H%M%S.calib")
+  f = open(filename, 'w')
+  f.write(str(params))
+  f.close()
+  if os.path.isfile('current.calib'):
+    os.remove('current.calib')
+  os.symlink(filename, 'current.calib')
+  
 
 def print_parameters(parameters):
   if not ('tx' in parameters and 'bc' in parameters):
