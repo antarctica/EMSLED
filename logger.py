@@ -68,8 +68,8 @@ def logger():
 def finish():
   print "Finished"
 
-  ADC.power_off()
   ADC.stop()
+  ADC.power_off()
 
   analogue_IO.disable() # disable TX
   AWG.finish() # free GPIO ports
