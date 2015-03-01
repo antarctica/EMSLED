@@ -5,6 +5,7 @@ import Adafruit_BBIO.GPIO as GPIO
 import time
 from sample import sample,waveform
 import logging
+import os
 
 
 class follower(object):
@@ -122,7 +123,12 @@ class follower(object):
         return result
 
     #SPS: Samples Per Second, this must be calibrated
-    def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3], selected_freq=None):
+    def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3], selected_freq=None, raw_file=""):
+        if raw_file != "":
+          # Disable displaying anything if we're writing to a file
+          dispFFT = False
+          ofile = open(raw_file, "w")
+
         if dispFFT:
           import matplotlib
           matplotlib.use('GTKCairo')
@@ -147,6 +153,9 @@ class follower(object):
             samples=self.get_sample_block(bytes_in_block)
             #Invert dimensions
             channels = np.transpose(samples)
+            if raw_file != "":
+              np.savez(ofile, desc={"time": time.time(), "lat": 77.464811, "lon": 69.217266  }, chans=channels)
+              continue
             if axis != None and dispFFT and self._spare:
               plt.axis(axis)
             ostring=""
