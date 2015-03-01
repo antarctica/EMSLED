@@ -79,6 +79,9 @@ MAIN1:
 #define rSpinPtr     r6
     MOV       rSpinPtr,     (0x2000 + PRU0_OFFSET_SPIN_COUNT)   // 0x3008
 
+#define rStopPtr     r8
+    MOV       rStopPtr,     (0x2000 + PRU0_OFFSET_RES1)
+
 #define rBits     r7
     MOV rBits, 24
 
@@ -97,7 +100,6 @@ MOV rSamp0, 0x00000000
 
 loop_label:
 
-	// MOV r30.b0,0x00
 	MOV channels, 4 
 	// Need to wait at this point until it is ready to take a sample
 	MOV r15,3 
@@ -142,7 +144,6 @@ loop_label:
 		NEXT:
 		QBNE SPICLK_BIT, rBits, 0
 		
-		MOV r30.b0, 0x02
 
     LSL rSamp0, rSamp0, 8   //Make the 24 data a 32 bit signed integer
 
@@ -160,5 +161,6 @@ loop_label:
 
 
     // Goto top of main loop
-  JMP       loop_label                     // 1
-
+  LD32  r15, rStopPtr
+  QBEQ  loop_label, r15, 0x0                     // 1
+HALT
