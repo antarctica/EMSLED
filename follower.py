@@ -10,7 +10,7 @@ import os
 
 class follower(object):
 
-    PRU_MAX_SHORT_SAMPLES =   128*1024
+    PRU_MAX_LONG_SAMPLES  =   0x0003ffff
     PRU0_OFFSET_SRAM_HEAD =   0x1000
     PRU0_OFFSET_DRAM_PBASE =  0x1004
     PRU0_OFFSET_SPIN_COUNT =  0x1008
@@ -100,18 +100,17 @@ class follower(object):
     def get_sample_block(self, bytes_in_block = 4096):
 
         # In theory we could wrap around the end of the buffer but in practice 
-        # (2*self.PRU_MAX_SHORT_SAMPLES) should be a multiple of bytes_in_block
+        # (self.PRU_MAX_LONG_SAMPLES) should be a multiple of bytes_in_block
         # This allows for much simpler code
-        head_offset = (self._tail // 4096) * 4096
-        if (head_offset + bytes_in_block) > 2*self.PRU_MAX_SHORT_SAMPLES:
+        if (head_offset + bytes_in_block) > self.PRU_MAX_LONG_SAMPLES:
           head_offset=0
 
         self._spare = 0
-        tail_offset = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
-        diff = (tail_offset - head_offset)%(2*self.PRU_MAX_SHORT_SAMPLES)
-        while ( (diff < bytes_in_block) or (diff > 2*self.PRU_MAX_SHORT_SAMPLES - bytes_in_block) ):
+        while ( True ):
             tail_offset = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
-            diff = (tail_offset - head_offset)%(2*self.PRU_MAX_SHORT_SAMPLES)
+            diff = (tail_offset - head_offset) % self.PRU_MAX_LONG_SAMPLES
+            if (diff >= bytes_in_block) and (diff <= self.PRU_MAX_LONG_SAMPLES - bytes_in_block):
+                break
             self._spare = 1
             time.sleep(0.02)
 
@@ -120,7 +119,7 @@ class follower(object):
         result = np.frombuffer(self._extmem, dtype='4<i4', count=bytes_in_block/16, offset=head_offset/16)
         result.dtype = np.int32
 
-        self._tail = (head_offset + bytes_in_block)%(2*self.PRU_MAX_SHORT_SAMPLES)
+        self._tail = (head_offset + bytes_in_block) % self.PRU_MAX_LONG_SAMPLES
 
         return result
 
@@ -152,7 +151,6 @@ class follower(object):
           selected_index = np.argmin(np.abs(fftfreq - selected_freq))
 
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
-        self._tail -= self._tail % bytes_in_block - bytes_in_block
 
         while (not quit):
             samples=self.get_sample_block(bytes_in_block)
@@ -183,7 +181,7 @@ class follower(object):
               plt.pause(0.001)
               plt.cla()
 
-    def get_sample_freq(self, selected_freq, SPS=40000, dispFFT=False, FFTchannels=[1,2,3], axis=None):
+    def get_sample_freq(self, selected_freq, SPS=40000, dispFFT=False, FFTchannels=[1,2,3], axis=None, raw_file=""):
         samples_count = int(1.0*SPS/selected_freq*50)
         bytes_in_block = samples_count * 16 #4 channels, 4B per sample
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
