@@ -161,10 +161,11 @@ void follow_stream( unsigned int usDelay )
 
 
 	// setup gnuplot pipe
+	printf("Starting gnuplot\n");
 	FILE * gnuplotPipe = popen("gnuplot -persistant","w");
-	fprintf(gnuplotPipe,"set term x11 \n");
+	fprintf(gnuplotPipe,"set term x11;\n");
 	// fprintf(gnuplotPipe,"set xrange [0:%d] \n", numberOfSamplers - 1);
-	fprintf(gnuplotPipe,"set yrange [0:2.6] \n");
+	fprintf(gnuplotPipe,"set yrange [0:2.6];\n");
 
 
 	// setup fft
@@ -222,98 +223,102 @@ void follow_stream( unsigned int usDelay )
 			output2 = ((2.5*output)/8388608);
 			if(sample_bf[idx+1]&0x0080){ output2 = output2-5;  }
 
-		if((sample_bf[idx+1]&0xFF00) == 0x00){
-			if(index < samples_to_fft){
-				channel1[index] = output2;	
-				index++;
-			}
-		}
-		else if((sample_bf[idx+1]&0xFF00) == 0x2000){
-			if(index < samples_to_fft){
-				channel2[index] = output2;	
-			}
-		}
-		else if((sample_bf[idx+1]&0xFF00) == 0x4000){
-			if(index < samples_to_fft){
-				channel3[index] = output2;	
-			}
-		}
-		else if((sample_bf[idx+1]&0xFF00) == 0x6000){
-			if(index < samples_to_fft){
-				channel4[index] = output2;	
-			}
-		}
-	}
-	
-	if(index==samples_to_fft){
-		max = 0;
-		max2 = 0;
-		max3 = 0;
-		max4 = 0;
-		memset(tmp_fd, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
-		memset(tmp_fd2, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
-		memset(tmp_fd3, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
-		memset(tmp_fd4, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
-
-		//r(index=0;index<samples_to_fft;index++){
-		//hannel2[index] *= channel1[index];
-		//
-		fftw_execute_dft_r2c(fft_plan, channel1, tmp_fd);
-		fftw_execute_dft_r2c(fft_plan2, channel2, tmp_fd2);
-		fftw_execute_dft_r2c(fft_plan3, channel3, tmp_fd3);
-		fftw_execute_dft_r2c(fft_plan4, channel4, tmp_fd4);
-
-		fprintf(gnuplotPipe,"plot '-' using 1:2 with lines, '-' using 1:3 with lines, '-' using 1:4 with lines, '-' using 1:5 with lines \n");
-	
-		for(index=0;index<samples_to_fft;index++){
-			temp = sqrt(pow(tmp_fd[index][0],2)+pow(tmp_fd[index][1],2))/samples_to_fft;
-			temp2 = sqrt(pow(tmp_fd2[index][0],2)+pow(tmp_fd2[index][1],2))/samples_to_fft;
-			temp3 = sqrt(pow(tmp_fd3[index][0],2)+pow(tmp_fd3[index][1],2))/samples_to_fft;
-			temp4 = sqrt(pow(tmp_fd4[index][0],2)+pow(tmp_fd4[index][1],2))/samples_to_fft;
-			fprintf(gnuplotPipe, "%lf %lf %lf %lf %lf\n", (double)index, temp,temp2,temp3,temp4);
-			if(temp > max) { max = temp; }
-			if(temp2 > max2) { max2 = temp2; }
-			if(temp3 > max3) { max3 = temp3; }
-			if(temp4 > max4) { max4 = temp4; }
-		}
-		sec = time(NULL);
-		printf("T=%ld C1 %f C2 %f C3 %f C4 %f\n",sec,max,max2,max3,max4);
-		fprintf(gnuplotPipe,"e\n");
-		fflush(gnuplotPipe);
-		/*
-		fftw_execute_dft_c2r(ifft_plan, tmp_fd, result);
-
-			// find peaks and period
-		p1 = -10.0; p2 = -10.0; peak_sum = 0.0; min_sum = 0.0; last_peak = 0.0; last_min = 0.0; 
-		count_peak = -1; count_min = -1; count_period = -1; period_sum = 0; start = 0; first_peak = 1; first_min = 1; last_period = 0;
-
-		for(index=0;index<samples_to_fft*interpolation_factor;index++){
-			if((p1 < p2) && (p2 > result[index])){ 
-				if(first_peak==0){ peak_sum += p2/samples_to_fft; count_peak++; last_peak = p2/samples_to_fft; }	
-				else{ first_peak = 0; }
-			}
-			if((p1 > p2) && (p2 < result[index])){ 
-				if(first_min == 0){ min_sum += p2/samples_to_fft; count_min++; last_min = p2/samples_to_fft; }
-				else{ first_min = 0; }
-			}
-			if((p2 > 0) && (result[index] < 0)){
-				if ((start != 0)&&(first_peak != 1) && (first_min != 1)){
-					period_sum += (index-start); count_period++; last_period = (index-start);
+			if((sample_bf[idx+1]&0xFF00) == 0x00){
+				if(index < samples_to_fft){
+					channel1[index] = output2;	
+					index++;
 				}
-				start = index;
 			}
-			p1 = p2; p2 = result[index];
+			else if((sample_bf[idx+1]&0xFF00) == 0x2000){
+				if(index < samples_to_fft){
+					channel2[index] = output2;	
+				}
+			}
+			else if((sample_bf[idx+1]&0xFF00) == 0x4000){
+				if(index < samples_to_fft){
+					channel3[index] = output2;	
+				}
+			}
+			else if((sample_bf[idx+1]&0xFF00) == 0x6000){
+				if(index < samples_to_fft){
+					channel4[index] = output2;	
+				}
+			}
+			if (index >= samples_to_fft) {
+				quit = true;
+			}
 		}
-		sec = time(NULL);
-		printf("T=%ld Pk-Pk %f, Period %d\n",sec,(peak_sum-last_peak)/count_peak-(min_sum-last_min)/count_min, (period_sum-last_period)/count_period);
-		*/	
-		index = 0;
-		memset(channel1, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
-		memset(channel2, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
-		memset(channel3, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
-		memset(channel4, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
-	}
-
+		
+		if(index==samples_to_fft){
+			max = 0;
+			max2 = 0;
+			max3 = 0;
+			max4 = 0;
+			memset(tmp_fd, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
+			memset(tmp_fd2, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
+			memset(tmp_fd3, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
+			memset(tmp_fd4, 0, (interpolation_size/2+1)*sizeof(fftw_complex));
+	
+			//r(index=0;index<samples_to_fft;index++){
+			//hannel2[index] *= channel1[index];
+			//
+			fftw_execute_dft_r2c(fft_plan, channel1, tmp_fd);
+			fftw_execute_dft_r2c(fft_plan2, channel2, tmp_fd2);
+			fftw_execute_dft_r2c(fft_plan3, channel3, tmp_fd3);
+			fftw_execute_dft_r2c(fft_plan4, channel4, tmp_fd4);
+	
+			//fprintf(gnuplotPipe,"plot '-' using 1:2 with lines, '-' using 1:3 with lines, '-' using 1:4 with lines, '-' using 1:5 with lines \n");
+			fprintf(gnuplotPipe,"plot '-' for[col=2:5] using 1:col with lines;\n");
+		
+			for(index=0;index<samples_to_fft;index++){
+				temp = sqrt(pow(tmp_fd[index][0],2)+pow(tmp_fd[index][1],2))/samples_to_fft;
+				temp2 = sqrt(pow(tmp_fd2[index][0],2)+pow(tmp_fd2[index][1],2))/samples_to_fft;
+				temp3 = sqrt(pow(tmp_fd3[index][0],2)+pow(tmp_fd3[index][1],2))/samples_to_fft;
+				temp4 = sqrt(pow(tmp_fd4[index][0],2)+pow(tmp_fd4[index][1],2))/samples_to_fft;
+				fprintf(gnuplotPipe, "%d %lf %lf %lf %lf\n", index, temp,temp2,temp3,temp4);
+				fprintf(stdout, "%d %lf %lf %lf %lf\n", index, temp,temp2,temp3,temp4);
+				if(temp > max) { max = temp; }
+				if(temp2 > max2) { max2 = temp2; }
+				if(temp3 > max3) { max3 = temp3; }
+				if(temp4 > max4) { max4 = temp4; }
+			}
+			sec = time(NULL);
+			printf("T=%ld C1 %f C2 %f C3 %f C4 %f\n",sec,max,max2,max3,max4);
+			fprintf(gnuplotPipe,"e\n");
+			fflush(gnuplotPipe);
+			/*
+			fftw_execute_dft_c2r(ifft_plan, tmp_fd, result);
+	
+				// find peaks and period
+			p1 = -10.0; p2 = -10.0; peak_sum = 0.0; min_sum = 0.0; last_peak = 0.0; last_min = 0.0; 
+			count_peak = -1; count_min = -1; count_period = -1; period_sum = 0; start = 0; first_peak = 1; first_min = 1; last_period = 0;
+	
+			for(index=0;index<samples_to_fft*interpolation_factor;index++){
+				if((p1 < p2) && (p2 > result[index])){ 
+					if(first_peak==0){ peak_sum += p2/samples_to_fft; count_peak++; last_peak = p2/samples_to_fft; }	
+					else{ first_peak = 0; }
+				}
+				if((p1 > p2) && (p2 < result[index])){ 
+					if(first_min == 0){ min_sum += p2/samples_to_fft; count_min++; last_min = p2/samples_to_fft; }
+					else{ first_min = 0; }
+				}
+				if((p2 > 0) && (result[index] < 0)){
+					if ((start != 0)&&(first_peak != 1) && (first_min != 1)){
+						period_sum += (index-start); count_period++; last_period = (index-start);
+					}
+					start = index;
+				}
+				p1 = p2; p2 = result[index];
+			}
+			sec = time(NULL);
+			printf("T=%ld Pk-Pk %f, Period %d\n",sec,(peak_sum-last_peak)/count_peak-(min_sum-last_min)/count_min, (period_sum-last_period)/count_period);
+			*/	
+			index = 0;
+			memset(channel1, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
+			memset(channel2, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
+			memset(channel3, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
+			memset(channel4, 0, (samples_to_fft+time_domain_zero_padding)*sizeof(double));
+		}
 
 	} // End of main loop 
 

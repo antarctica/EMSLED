@@ -42,7 +42,7 @@ def setAmplitude(x):
 def logger():
 	global f
 	log = True
-	p = subprocess.Popen('arm/follower',shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+	p = subprocess.Popen('arm/follower_fft_francois',shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
 	output = []
 	while log:
 		try:

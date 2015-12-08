@@ -11,20 +11,26 @@ import Adafruit_BBIO.PWM as PWM
 import time
 
 def start():
-	GPIO.setup("P8_30",GPIO.OUT)
-	GPIO.output("P8_30",GPIO.HIGH)
-	GPIO.setup("P9_23",GPIO.OUT)
-	GPIO.setup("P9_24",GPIO.OUT)
-	PWM.start("P8_34",50,70e6) # setup ADC master clock 13e6 = 25khz
-	PWM.start("P8_46",50,70e6) # 100e5
+	GPIO.setup("P8_30",GPIO.OUT)	#SPI CS for AWG
+	GPIO.output("P8_30",GPIO.HIGH)	#Set CS high initally - i.e. disabled
+	GPIO.setup("P9_23",GPIO.OUT)	#AFG External trigger.  NB check JP1 setting too!
+	GPIO.setup("P9_24",GPIO.OUT)	#What is this for?  Possibly old code for the old SPI non bit banged bus?
+	PWM.start("P8_34",50,70e6) 	# setup ADC master clock 13e6 = 25khz  ~ NCO sees 50MHz clock - connects to J10 on AFG
+
+# NCO removed P8_46 because of a device tree conflict with SPI_overlay_PRU1
+#	PWM.start("P8_46",50,70e6) # 100e5
+
 	pypruss.modprobe()					# This only has to be called once pr boot
 
+
+# This appears to be a clock function BUT what for?  Seems to be for old SPI non bit banged bus?  Is this non longer needed?
 def c():
 	GPIO.output("P9_24",GPIO.HIGH)
 	time.sleep(0.001)
 	GPIO.output("P9_24",GPIO.LOW)
 	time.sleep(0.001)
 
+# This appears to be a trigger or CS line BUT what for?  Seems to be for old SPI non bit banged bus?  Is this no longer needed?
 def trigger():
 	print "Trigger"
 	GPIO.output("P9_23",GPIO.HIGH)
@@ -158,9 +164,9 @@ def configure2SineWave():
 	time.sleep(0.1)
 	writeData(0x35,0x4000,label="DC gain - TX") # don't go higher than 4000
 	time.sleep(0.1)
-	writeData(0x34,0x0040,label="DC gain 2 - Bucking") # careful, can saturate rx coiil
+	writeData(0x34,0x4000,label="DC gain 2 - Bucking") # careful, can saturate rx coiil
 	time.sleep(0.1)
-	writeData(0x43,0x0000,label="Phase offset") # 0x1000 = 30 degrees ?? 22
+	writeData(0x43,150,label="Phase offset") # 0x1000 = 30 degrees ?? 22
 	time.sleep(0.1)
 	run()
 
