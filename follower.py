@@ -74,11 +74,9 @@ class follower(object):
         while (not quit):
             samples=self.get_sample_block()
             for sample in samples:
-		print(hex(sample) + " " + hex((sample & 0xFFFF0000) >> 16 ^ (sample & 0x00FF) << 16))
-                #output = sample & 0x00FFFFFF
-                output = (sample & 0xFFFF0000) >> 16 ^ (sample & 0x00FF) << 16
+                output = sample & 0x007FFFFF
                 output = ((2.5*output)/8388608)
-		if sample & 0x00000080: output = output - 5
+                if sample & 0x00800000: output = - output
                 channels[index].append(output)
                 if channel == 0: index += 1
                 channel = (channel - 1 ) % 4
