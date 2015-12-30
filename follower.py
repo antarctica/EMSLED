@@ -70,21 +70,18 @@ class follower(object):
 
     def follow_stream(self):
         quit = False
-        channels = defaultdict(list)
-        index = 0
-        channel = 3
-        iter = 0
         bytes_in_block = 4096*4
+        fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/40000) # /16 -> /4 channels /4 bytes per channel
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
         self._tail -= self._tail % bytes_in_block
-        with open("samples.bin", 'wb') as f:
-         while (iter < 1000):
-             iter += 1
-             samples=self.get_sample_block(bytes_in_block)
-             output = np.left_shift(samples, 8)
-             channel4 = np.transpose(output) #[3]
-             fft = np.fft.rfft(channel4[3])
-             fftfreq = np.fft.rfftfreq(channel4[3].size, d=1.0/40000)
-             print str(len(fft)) + " " + str(len(fftfreq))
-             plt.plot(fftfreq, fft.real)
-             plt.show()
+        while (not quit):
+            samples=self.get_sample_block(bytes_in_block)
+            
+            #Get rid of the channel markings in 0xFF000000
+            output = np.left_shift(samples, 8)
+            
+            #Invert dimensions
+            channels = np.transpose(output)
+            fft = np.fft.rfft(channels[3])
+            plt.plot(fftfreq, fft.real)
+            plt.show()
