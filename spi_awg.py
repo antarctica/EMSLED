@@ -154,20 +154,31 @@ def configureSineWave():
 	run()
 def configure2SineWave():
 	program()
-	writeData(0x27,0x3131,label="Sinewave Mode")
-	time.sleep(0.1)
-	writeData(0x45,0x0000,label="Static phase/freq")
-	time.sleep(0.1)
-	writeData(0x3E,0x0032,label="Freq MSB") # 0x03 0x62
-	time.sleep(0.1)
-	writeData(0x3F,0x0000,label="Freq LSB")
-	time.sleep(0.1)
-	writeData(0x35,0x4000,label="DC gain - TX") # don't go higher than 4000
-	time.sleep(0.1)
-	writeData(0x34,0x4000,label="DC gain 2 - Bucking") # careful, can saturate rx coiil
-	time.sleep(0.1)
-	writeData(0x43,150,label="Phase offset") # 0x1000 = 30 degrees ?? 22
-	time.sleep(0.1)
+        writeData(0x27,0x3131,label="Sinewave Mode 1&2")
+        time.sleep(0.1)
+        writeData(0x26,0x3131,label="Sinewave Mode 3&4")
+        time.sleep(0.1)
+        writeData(0x45,0x0000,label="Static phase/freq")
+        time.sleep(0.1)
+        writeData(0x3E,0x0032,label="Freq MSB") # 0x03 0x62
+        time.sleep(0.1)
+        writeData(0x3F,0x0000,label="Freq LSB")
+        time.sleep(0.1)
+        writeData(0x35,0x4000,label="DC gain - TX") # don't go higher than 4000
+        time.sleep(0.1)
+        writeData(0x34,0x4000,label="DC gain 2 - Bucking") # careful, can saturate rx coiil
+        time.sleep(0.1)
+        writeData(0x33,0x4000,label="DC gain 3 - Bucking") # careful, can saturate rx coiil
+        time.sleep(0.1)
+        writeData(0x32,0x4000,label="DC gain 4 - Bucking") # careful, can saturate rx coiil
+        time.sleep(0.1)
+        writeData(0x43,0x0000,label="Phase offset 1") # 0x1000 = 30 degrees ?? 22
+        time.sleep(0.1)
+        writeData(0x42,0x7FFF,label="Phase offset 2") # 0x1000 = 30 degrees ?? 22
+        time.sleep(0.1)
+        writeData(0x41,0x8000/3*2,label="Phase offset 3") # 0x1000 = 30 degrees ?? 22
+        time.sleep(0.1)
+        writeData(0x40,0x8000/3,label="Phase offset 4") # 0x1000 = 30 degrees ?? 22
 	run()
 
 def setAmplitude(amplitude):
