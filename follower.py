@@ -16,7 +16,7 @@ class follower(object):
     PRU_EVTOUT_0 = 3
 
 
-    def __init__(self, pru = 0):
+    def __init__(self, pru = 0, pru0_fw="arm/pru00.bin", pru1_fw="arm/pru01.bin"):
         if pru == 0:
             pru_dataram = pypruss.PRUSS0_PRU0_DATARAM
         else:
@@ -44,6 +44,12 @@ class follower(object):
         print "\tINFO: setup mem \n"
         self.ddrMem = pypruss.ddr_addr()
         print "V extram_base = " + hex(self.ddrMem) + "\n"
+        
+        print "\tINFO: loading pru00 code \n"
+        pypruss.exec_program(0, pru0_fw)
+        
+        print "\tINFO: loading pru01 code \n"
+        pypruss.exec_program(1, pru0_fw)
 
     def read_uint(self, offset=0):
         return self.readData('L', offset, 1)[0]
