@@ -35,9 +35,14 @@ class follower(object):
 
         print "\tINFO: mapping memory \n"
         self._data = pypruss.map_prumem(pru_dataram)
-        print "\tINFO: data segment len=" + str(len(self._data)) + "\n"
-        self._tail = 0
         
+        print "\tINFO: data segment len=" + str(len(self._data)) + "\n"
+        
+        print "\tINFO: setting tail \n"
+        self._tail = 0
+        struct.pack_into('l', self._data, self.PRU0_OFFSET_DRAM_HEAD, self._tail)
+        
+        print "\tINFO: mapping extmem \n"
         self._extmem = pypruss.map_extmem()
         print "\tINFO: ext segment len=" + str(len(self._extmem))
 
