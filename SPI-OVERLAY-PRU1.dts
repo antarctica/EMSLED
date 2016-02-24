@@ -35,6 +35,7 @@
 		0x0e0 0xd // SPI CLK output p8_27 pru1_r30_8,
 		0x0e4 0xd // SPI Data output p8_29 pru1_r30_9,
 		0x0e8 0x2e // SPI Data input p8_28 pru1_r31_10
+		0x158 0x07 //ADC 5V power supply, p9_18 GPIO
 			>;
             };
         };
