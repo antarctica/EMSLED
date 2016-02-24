@@ -12,10 +12,12 @@ import Adafruit_BBIO.GPIO as GPIO
 import spi_awg
 import analogue_IO
 import setup_BB
+import follower
 
 
 def startup():
 	global f
+        global ADC
 	setup_BB.setup_BB_slots()
 	# prepare log file
 	try:
@@ -27,8 +29,8 @@ def startup():
 
 	analogue_IO.enable() # enable TX on analogue board
 
-	os.system("arm/pructl -clean")
-	os.system("arm/pructl -start") # start ADC
+        ADC = follower.follower()
+        ADC.power_on()
 
 def setPhase(x):
 	spi_awg.setPhase(x)
@@ -40,9 +42,9 @@ def setAmplitude(x):
 	os.system("arm/pructl -start") # start ADC
 
 def logger():
-	global f
+	global f, ADC
 	log = True
-	p = subprocess.Popen('arm/follower_fft_francois',shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        ADC.follow_stream()
 	output = []
 	while log:
 		try:
