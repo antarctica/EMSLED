@@ -4,6 +4,7 @@ import time
 import struct
 from collections import defaultdict
 from ctypes import c_long
+import Adafruit_BBIO.GPIO as GPIO
 import matplotlib
 matplotlib.use('GTKagg')
 import matplotlib.pyplot as plt
@@ -23,6 +24,9 @@ class follower(object):
             pru_dataram = pypruss.PRUSS0_PRU1_DATARAM
 
         self._spare = 0
+
+        print "\tINFO: setting up power control line\n"
+        GPIO.setup("P9_18",GPIO.OUT)
 
         print "\tINFO: pruss init\n"
         pypruss.init()						# Init the PRU
@@ -55,6 +59,12 @@ class follower(object):
         
         print "\tINFO: loading pru01 code \n"
         pypruss.exec_program(1, pru1_fw)
+
+    def power_on(self=None):
+        GPIO.output("P9_18",GPIO.HIGH)
+
+    def power_off(self=None):
+        GPIO.output("P9_18",GPIO.LOW)
 
     def read_uint(self, offset=0):
         return self.readData('L', offset, 1)[0]
