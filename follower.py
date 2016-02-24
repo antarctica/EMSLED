@@ -64,11 +64,16 @@ class follower(object):
 
     def get_sample_block(self, bytes_in_block = 4096):
 
+        # In theory we could wrap around the end of the buffer but in practice 
+        # (2*self.PRU_MAX_SHORT_SAMPLES) should be a multiple of bytes_in_block
+        # This allows for much simpler code
         head_offset = self._tail
+        if (head_offset + bytes_in_block) > 2*self.PRU_MAX_SHORT_SAMPLES:
+          head_offset=0
+
         tail_offset = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
-        while abs(tail_offset - head_offset) < bytes_in_block:
+        while (tail_offset - head_offset)%(2*self.PRU_MAX_SHORT_SAMPLES) < bytes_in_block:
             tail_offset = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
-            self._spare += 1
 
         # dtype='4<u4' means an array of dimension 4 of 4 unsigned integer written in little endian
         # (16 bytes per row, hence the /16 for the offsets and counts)
