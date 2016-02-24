@@ -54,7 +54,7 @@ class follower(object):
         pypruss.exec_program(0, pru0_fw)
         
         print "\tINFO: loading pru01 code \n"
-        pypruss.exec_program(1, pru0_fw)
+        pypruss.exec_program(1, pru1_fw)
 
     def read_uint(self, offset=0):
         return self.readData('L', offset, 1)[0]
