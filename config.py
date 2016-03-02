@@ -2,10 +2,10 @@ test_params = dict(
   tx_freq=5000,         #max is PWM_freq/clock_divider but this theoretical max is also the AWG's resolution
                         #  This affects the value of the 0x3E and 0x3F registers, a 24bit value calculated thus:
                         #  DDS_TW=int(tx_freq*(clock_divider*2**24/PWM_freq)
-  tx_dcgain=2.0,        #Transmission coil DC gain. Valid values are between -2.0 and +2.0
-  bc1_dcgain=0.1,       #Bucking coil 1 DC gain. Valid values are between -2.0 and +2.0
-  bc2_dcgain=0.1,       #Bucking coil 2 DC gain. Valid values are between -2.0 and +2.0
-  bc3_dcgain=0.1,       #Bucking coil 3 DC gain. Valid values are between -2.0 and +2.0
+  tx_dcgain=2.0,        #Transmission coil DC gain. Valid values are between ]-2.0 and +2.0[
+  bc1_dcgain=0.1,       #Bucking coil 1 DC gain. Valid values are between ]-2.0 and +2.0[
+  bc2_dcgain=0.1,       #Bucking coil 2 DC gain. Valid values are between ]-2.0 and +2.0[
+  bc3_dcgain=0.1,       #Bucking coil 3 DC gain. Valid values are between ]-2.0 and +2.0[
   bc1_ps=0.0,           #Bucking coil 1 phase shift in degrees.
   bc2_ps=0.0,           #Bucking coil 2 phase shift in degrees.
   bc3_ps=0.0            #Bucking coil 3 phase shift in degrees.
