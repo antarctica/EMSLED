@@ -80,15 +80,12 @@ READ2:
     MOV rSamp0, 0x00000000              // Intitalises our WORD
     SPICLK_BIT:                         // loop for each of the 24 bits
         LSL rSamp0, rSamp0, 1           // shift the data one bit to the left, making space for the next bit
-        
-        CALL SCLK_CONTROL
-        
         QBBC NEXT, r31.t10              // If we have HIGH on P8_28, the current bit is a 1
         OR rSamp0, rSamp0, 0x00000001
         NEXT:
+        CALL SCLK_CONTROL
         SUB bits, bits, 1               // decrement the number of bits remaining to be received
         QBNE SPICLK_BIT, bits, 0        // If there are still bits to be read, keep going
-        LSR rSamp0, rSamp0, 1           // shift the data one bit back to the right, still unclear why we have to drop the last bit...
 
 FINISH:
     SET r30.t6                          // Set P8_39 to High, Chip Select OFF
