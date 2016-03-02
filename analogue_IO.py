@@ -8,14 +8,23 @@ import Adafruit_BBIO.GPIO as GPIO
 GPIO.setup("P9_14",GPIO.OUT) # TX gain control
 GPIO.setup("P9_15",GPIO.OUT) # TX gain control
 GPIO.setup("P9_16",GPIO.OUT) # TX power
+GPIO.output("P9_14",GPIO.LOW)
+GPIO.output("P9_15",GPIO.LOW)
+GPIO.output("P9_16",GPIO.LOW)
 
 
-def enable():
-	GPIO.output("P9_14",GPIO.HIGH)
-	GPIO.output("P9_15",GPIO.HIGH)
-	GPIO.output("P9_16",GPIO.HIGH)
+def enable(gain=3):
+  if gain % 2: 
+    GPIO.output("P9_14",GPIO.HIGH)
+  else:
+    GPIO.output("P9_14",GPIO.LOW)
+  if gain > 1:  
+    GPIO.output("P9_15",GPIO.HIGH)
+  else:
+    GPIO.output("P9_15",GPIO.LOW)
+  GPIO.output("P9_16",GPIO.HIGH)
 
 def disable():
-	GPIO.output("P9_14",GPIO.LOW)
-	GPIO.output("P9_15",GPIO.LOW)
-	GPIO.output("P9_16",GPIO.LOW)
+  GPIO.output("P9_14",GPIO.LOW)
+  GPIO.output("P9_15",GPIO.LOW)
+  GPIO.output("P9_16",GPIO.LOW)
