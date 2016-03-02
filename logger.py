@@ -39,12 +39,8 @@ def startup():
 
 def setPhase(x):
 	spi_awg.setPhase(x)
-	os.system("arm/pructl -clean")
-	os.system("arm/pructl -start") # start ADC
 def setAmplitude(x):
 	spi_awg.setAmplitude(x)
-	os.system("arm/pructl -clean")
-	os.system("arm/pructl -start") # start ADC
 
 def logger():
 	global f, ADC
@@ -67,9 +63,9 @@ def finish():
 
 	f.close()
         ADC.power_off()
+        ADC.stop()
 
 	analogue_IO.disable() # disable TX
-	os.system("arm/pructl -stop") # disable ADC
 	GPIO.cleanup() # free GPIO ports
 
 if __name__ == "__main__":

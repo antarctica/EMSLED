@@ -66,6 +66,10 @@ class follower(object):
     def power_off(self=None):
         GPIO.output("P9_18",GPIO.LOW)
 
+    def stop(self):
+        pypruss.pru_disable(0)
+        pypruss.pru_disable(1)
+
     def read_uint(self, offset=0):
         return self.readData('L', offset, 1)[0]
 
