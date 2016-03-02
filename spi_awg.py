@@ -10,15 +10,15 @@ import Adafruit_BBIO.GPIO as GPIO
 import Adafruit_BBIO.PWM as PWM
 import time
 
-def start():
+def start(PWM_freq=1e7, PWM_duty_cycle=50, clock_divider=2):
 	GPIO.setup("P8_30",GPIO.OUT)	#SPI CS for AWG
 	GPIO.output("P8_30",GPIO.HIGH)	#Set CS high initally - i.e. disabled
 	GPIO.setup("P9_23",GPIO.OUT)	#AFG External trigger.  NB check JP1 setting too!
 	GPIO.setup("P9_24",GPIO.OUT)	#What is this for?  Possibly old code for the old SPI non bit banged bus?
-	PWM.start("P8_34",50,70e6) 	# setup ADC master clock 13e6 = 25khz  ~ NCO sees 50MHz clock - connects to J10 on AFG
+	PWM.start("P8_34",PWM_duty_cycle,PWM_freq) 	# setup ADC master clock 13e6 = 25khz  ~ NCO sees 50MHz clock - connects to J10 on AFG
 
 # NCO removed P8_46 because of a device tree conflict with SPI_overlay_PRU1
-#	PWM.start("P8_46",50,70e6) # 100e5
+#	PWM.start("P8_46",50,50e6) # 100e5
 
 	pypruss.modprobe()					# This only has to be called once pr boot
 
@@ -152,7 +152,23 @@ def configureSineWave():
 	writeData(0x3F,0x0000,label="Freq LSB")
 	writeData(0x35,0x0800,label="DC gain")
 	run()
-def configure2SineWave():
+def configure2SineWave( tx_freq=5000,
+                        tx_dcgain=1.0, bc1_dcgain=0.1, bc2_dcgain=0.1, bc3_dcgain=0.1, 
+                        bc1_ps=0.0, bc2_ps=0.0, bc3_ps=0.0, 
+                        PWM_freq=1e7, PWM_duty_cycle=50, clock_divider=2):
+
+        # Prepare the parameters:
+        freq=int(tx_freq*(2**24*clock_divider/PWM_freq))
+        freqMSB=freq>>8
+        freqLSB=(freq&0xFF)<<8
+        DC1Gain=int(0x400*abs(tx_dcgain))<<4
+        DC2Gain=int(0x400*abs(bc1_dcgain))<<4
+        DC3Gain=int(0x400*abs(bc2_dcgain))<<4
+        DC4Gain=int(0x400*abs(bc3_dcgain))<<4
+        PS2=int((bc1_ps%360) / 360.0 * 0x10000)
+        PS3=int((bc2_ps%360) / 360.0 * 0x10000)
+        PS4=int((bc3_ps%360) / 360.0 * 0x10000)
+
 	program()
         writeData(0x27,0x3131,label="Sinewave Mode 1&2")
         time.sleep(0.1)
@@ -160,25 +176,25 @@ def configure2SineWave():
         time.sleep(0.1)
         writeData(0x45,0x0000,label="Static phase/freq")
         time.sleep(0.1)
-        writeData(0x3E,0x0032,label="Freq MSB") # 0x03 0x62
+        writeData(0x3E,freqMSB,label="Freq MSB") # 0x03 0x62
         time.sleep(0.1)
-        writeData(0x3F,0x0000,label="Freq LSB")
+        writeData(0x3F,freqLSB,label="Freq LSB")
         time.sleep(0.1)
-        writeData(0x35,0x4000,label="DC gain - TX") # don't go higher than 4000
+        writeData(0x35,DC1Gain,label="DC gain - TX") # don't go higher than 4000
         time.sleep(0.1)
-        writeData(0x34,0x4000,label="DC gain 2 - Bucking") # careful, can saturate rx coiil
+        writeData(0x34,DC2Gain,label="DC gain 2 - Bucking") # careful, can saturate rx coiil
         time.sleep(0.1)
-        writeData(0x33,0x4000,label="DC gain 3 - Bucking") # careful, can saturate rx coiil
+        writeData(0x33,DC3Gain,label="DC gain 3 - Bucking") # careful, can saturate rx coiil
         time.sleep(0.1)
-        writeData(0x32,0x4000,label="DC gain 4 - Bucking") # careful, can saturate rx coiil
+        writeData(0x32,DC4Gain,label="DC gain 4 - Bucking") # careful, can saturate rx coiil
         time.sleep(0.1)
         writeData(0x43,0x0000,label="Phase offset 1") # 0x1000 = 30 degrees ?? 22
         time.sleep(0.1)
-        writeData(0x42,0x7FFF,label="Phase offset 2") # 0x1000 = 30 degrees ?? 22
+        writeData(0x42,PS2,label="Phase offset 2") # 0x1000 = 30 degrees ?? 22
         time.sleep(0.1)
-        writeData(0x41,0x8000/3*2,label="Phase offset 3") # 0x1000 = 30 degrees ?? 22
+        writeData(0x41,PS3,label="Phase offset 3") # 0x1000 = 30 degrees ?? 22
         time.sleep(0.1)
-        writeData(0x40,0x8000/3,label="Phase offset 4") # 0x1000 = 30 degrees ?? 22
+        writeData(0x40,PS4,label="Phase offset 4") # 0x1000 = 30 degrees ?? 22
 	run()
 
 def setAmplitude(amplitude):

@@ -13,6 +13,8 @@ import spi_awg
 import analogue_IO
 import setup_BB
 import follower
+import time # For testing only
+import config
 
 
 def startup():
@@ -24,10 +26,13 @@ def startup():
 		f = open(sys.argv[1],"w")
 	except: f = open("log.txt","w")
 
-	spi_awg.start() # start AWG
-	spi_awg.configure2SineWave() # configure for 2 sinewaves
+	spi_awg.start(**config.hardware['AWG']) # start AWG
 
-	analogue_IO.enable() # enable TX on analogue board
+        args=config.test_params.copy()
+        args.update(config.test_params)
+	spi_awg.configure2SineWave(**args) # configure for 2 sinewaves
+
+	analogue_IO.enable(**config.hardware['IO']) # enable TX on analogue board
 
         ADC = follower.follower()
         ADC.power_on()
@@ -61,6 +66,7 @@ def finish():
 	print "Finished"
 
 	f.close()
+        ADC.power_off()
 
 	analogue_IO.disable() # disable TX
 	os.system("arm/pructl -stop") # disable ADC
