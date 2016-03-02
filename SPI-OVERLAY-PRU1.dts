@@ -12,7 +12,7 @@
 /plugin/;
  
 / {
-   compatible = "ti,beaglebone", "ti,beaglebone-black";
+   compatible = "ti,beaglebone", "ti,beaglebone-black", "ti,beaglebone-green";
  
    part-number = "EBB-PRU-ADC";
    version = "00A0";
@@ -27,15 +27,15 @@
         __overlay__ {
             bs_pinmode_P8_42_0x36: pinmux_bs_pinmode_P8_42_0x36 {
                 pinctrl-single,pins = <
-               0x0bc 0x2e  // CLK Input    P8_40 pr1_pru1_pru_r31_7
-               0x0b8 0x2e  // DATA Input   P8_39 pr1_pru1_pru_r31_6 
-               0x0b4 0x2e  // FSYNC Input  P8_42 pr1_pru1_pru_r31_5,
-               0x0a4 0xd  // CLK OUTPUT   P8_46 pr1_pru1_pru_r30_1,
-               0x0a0 0x5  // DEBUG output P8_45 pr1_pru1_pru_r30_0,   0x0d
-		0x0e0 0xd // SPI CLK output p8_27 pru1_r30_8,
-		0x0e4 0xd // SPI Data output p8_29 pru1_r30_9,
-		0x0e8 0x2e // SPI Data input p8_28 pru1_r31_10
-		0x158 0x07 //ADC 5V power supply, p9_18 GPIO
+                0x0bc 0x2e  // CLK Input    P8_40 pr1_pru1_pru_r31_7
+                0x0b8 0x2e  // DATA Input   P8_39 pr1_pru1_pru_r31_6 
+                0x0b4 0x2e  // FSYNC Input  P8_42 pr1_pru1_pru_r31_5,
+                0x0a0 0xd  // DEBUG output P8_45 pr1_pru1_pru_r30_0,   0x0d
+                0x0a4 0x5  // CLK OUTPUT   P8_46 pr1_pru1_pru_r30_1,
+                0x0e0 0xd // SPI CLK output p8_27 pru1_r30_8,
+                0x0e4 0xd // SPI Data output p8_29 pru1_r30_9,
+                0x0e8 0x2e // SPI Data input p8_28 pru1_r31_10
+                0x158 0x07 //ADC 5V power supply, p9_18 GPIO
 			>;
             };
         };
