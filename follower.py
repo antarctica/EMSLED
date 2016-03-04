@@ -1,9 +1,6 @@
 import pypruss
 import numpy as np
-import time
 import struct
-from collections import defaultdict
-from ctypes import c_long
 import Adafruit_BBIO.GPIO as GPIO
 import matplotlib
 matplotlib.use('GTKagg')
