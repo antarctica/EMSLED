@@ -14,6 +14,7 @@ class follower(object):
 
     PRU0_OFFSET_DRAM_HEAD = 0x1014
     PRU_MAX_SHORT_SAMPLES = 128*1024
+    PRU0_OFFSET_DRAM_PBASE = 0x1004
     PRU_EVTOUT_0 = 3
 
 
@@ -53,6 +54,9 @@ class follower(object):
         print "\tINFO: setup mem \n"
         self.ddrMem = pypruss.ddr_addr()
         print "V extram_base = " + hex(self.ddrMem) + "\n"
+
+        self._pru01_phys = int(open("/sys/class/uio/uio1/maps/map1/addr", 'r').read(), 16)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_DRAM_PBASE, self._pru01_phys)
         
         print "\tINFO: loading pru00 code \n"
         pypruss.exec_program(0, pru0_fw)
