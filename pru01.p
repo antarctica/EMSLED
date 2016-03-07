@@ -91,7 +91,6 @@ MAIN1:
 #define rSampMask    r12
     MOV        rSampMask, 0xffffff
 #define channels     r14 
-#define channel_label     r16
 
 MOV r13, 0x00000000
 MOV rSamp0, 0x00000000
@@ -100,7 +99,6 @@ loop_label:
 
 	// MOV r30.b0,0x00
 	MOV channels, 4 
-	SUB channel_label,channels,1	
 	// Need to wait at this point until it is ready to take a sample
 	MOV r15,6 
 	MOV r30.b0, 0x02
@@ -147,18 +145,15 @@ loop_label:
 		
 		MOV r30.b0, 0x02
 
-		AND rSamp0, rSamp0, rSampMask // AND the data with mask to give only the 24 LSBs
+                LSL rSamp0, rSamp0, 8   //Make the 24 data a 32 bit signed integer
 
-		LSL rSamp1, channel_label, 29
-		OR  rSamp1, rSamp1, rSamp0
 		// Store sample at head and advance head
-		ST32      rSamp1, rHeadPtr               // 2
+		ST32      rSamp0, rHeadPtr               // 2
 		MOV r30.b0, 0x00
 		ADD       rHeadPtr, rHeadPtr, 4          // 1
 		AND       rHeadPtr, rHeadPtr, rHeadMask  // 1
 		
 	 	SUB channels, channels, 1
-	 	SUB channel_label, channel_label, 1
 	    // Update sram with new head
 	    ST32      rHeadPtr, rHeadPtrPtr          // 2
 

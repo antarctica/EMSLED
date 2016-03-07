@@ -107,8 +107,8 @@ class follower(object):
 
         # dtype='4<u4' means an array of dimension 4 of 4 unsigned integer written in little endian
         # (16 bytes per row, hence the /16 for the offsets and counts)
-        result = np.frombuffer(self._extmem, dtype='4<u4', count=bytes_in_block/16, offset=head_offset/16)
-        result.dtype = np.uint32
+        result = np.frombuffer(self._extmem, dtype='4<i4', count=bytes_in_block/16, offset=head_offset/16)
+        result.dtype = np.int32
 
         self._tail = (self._tail + bytes_in_block)%(2*self.PRU_MAX_SHORT_SAMPLES)
 
@@ -125,26 +125,15 @@ class follower(object):
 
         while (not quit):
             samples=self.get_sample_block(bytes_in_block)
-            #np.set_printoptions(formatter={'int':hex})
-            #print samples
-            #np.set_printoptions(formatter={'int':str})
-            
-            #Get rid of the channel markings in 0xFF000000
-            output = np.left_shift(samples, 8)
-            output.dtype = np.int32
-            #print output
-            
             #Invert dimensions
-            channels = np.transpose(output)
-            #print channels[3]
-            plt.axis([0,20000,-4e10,4e10])
+            channels = np.transpose(samples)
+            #plt.axis([0,1024,-4e10,4e10])
             ostring=""
             for chan in range(0, 4):
               fft = np.fft.rfft(channels[chan])
               max = np.argmax(np.fabs(fft.real[50:4000]))
               ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[max+50]), 12, int(fft.real[max+50])) 
               plt.plot(fftfreq, fft.real)
-              if chan > 0: plt.plot(channels[chan])
             print ostring
             plt.draw()
             plt.pause(0.001)
