@@ -9,9 +9,15 @@ import matplotlib.pyplot as plt
 
 class follower(object):
 
-    PRU0_OFFSET_DRAM_HEAD = 0x1014
-    PRU_MAX_SHORT_SAMPLES = 128*1024
-    PRU0_OFFSET_DRAM_PBASE = 0x1004
+    PRU_MAX_SHORT_SAMPLES =   128*1024
+    PRU0_OFFSET_SRAM_HEAD =   0x1000
+    PRU0_OFFSET_DRAM_PBASE =  0x1004
+    PRU0_OFFSET_SPIN_COUNT =  0x1008
+    PRU0_OFFSET_RES1 =        0x100C
+    PRU0_OFFSET_SRAM_TAIL =   0x1010
+    PRU0_OFFSET_DRAM_HEAD =   0x1014
+    PRU0_OFFSET_RES2 =        0x1018
+    PRU0_OFFSET_RES3 =        0x101C
     PRU_EVTOUT_0 = 3
 
 
@@ -53,7 +59,14 @@ class follower(object):
         print "V extram_base = " + hex(self.ddrMem) + "\n"
 
         self._pru01_phys = int(open("/sys/class/uio/uio1/maps/map1/addr", 'r').read(), 16)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_SRAM_HEAD, 0)
         struct.pack_into('L', self._data, self.PRU0_OFFSET_DRAM_PBASE, self._pru01_phys)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_SPIN_COUNT, 0)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_RES1, 0xdeadbeef)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_SPIN_COUNT, 0)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_SPIN_COUNT, 0)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_RES2, 0xbabedead)
+        struct.pack_into('L', self._data, self.PRU0_OFFSET_RES3, 0xbeefcafe)
         
         print "\tINFO: loading pru00 code \n"
         pypruss.exec_program(0, pru0_fw)
@@ -87,13 +100,15 @@ class follower(object):
           head_offset=0
 
         tail_offset = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
-        while (tail_offset - head_offset)%(2*self.PRU_MAX_SHORT_SAMPLES) < bytes_in_block:
+        diff = (tail_offset - head_offset)%(2*self.PRU_MAX_SHORT_SAMPLES)
+        while ( (diff < bytes_in_block) or (diff > 2*self.PRU_MAX_SHORT_SAMPLES - bytes_in_block) ):
             tail_offset = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
+            diff = (tail_offset - head_offset)%(2*self.PRU_MAX_SHORT_SAMPLES)
 
         # dtype='4<u4' means an array of dimension 4 of 4 unsigned integer written in little endian
         # (16 bytes per row, hence the /16 for the offsets and counts)
         result = np.frombuffer(self._extmem, dtype='4<u4', count=bytes_in_block/16, offset=head_offset/16)
-        result.dtype = np.int32
+        result.dtype = np.uint32
 
         self._tail = (self._tail + bytes_in_block)%(2*self.PRU_MAX_SHORT_SAMPLES)
 
@@ -104,15 +119,33 @@ class follower(object):
         bytes_in_block = 4096*4
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/40000) # /16 -> /4 channels /4 bytes per channel
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
-        self._tail -= self._tail % bytes_in_block
+        self._tail -= self._tail % bytes_in_block - bytes_in_block
+        plt.ion()
+        plt.show()
+
         while (not quit):
             samples=self.get_sample_block(bytes_in_block)
+            #np.set_printoptions(formatter={'int':hex})
+            #print samples
+            #np.set_printoptions(formatter={'int':str})
             
             #Get rid of the channel markings in 0xFF000000
             output = np.left_shift(samples, 8)
+            output.dtype = np.int32
+            #print output
             
             #Invert dimensions
             channels = np.transpose(output)
-            fft = np.fft.rfft(channels[3])
-            plt.plot(fftfreq, fft.real)
-            plt.show()
+            #print channels[3]
+            plt.axis([0,20000,-4e10,4e10])
+            ostring=""
+            for chan in range(0, 4):
+              fft = np.fft.rfft(channels[chan])
+              max = np.argmax(np.fabs(fft.real[50:4000]))
+              ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[max+50]), 12, int(fft.real[max+50])) 
+              plt.plot(fftfreq, fft.real)
+              if chan > 0: plt.plot(channels[chan])
+            print ostring
+            plt.draw()
+            plt.pause(0.001)
+            plt.cla()
