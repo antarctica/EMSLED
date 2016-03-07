@@ -29,7 +29,7 @@ def startup():
 	spi_awg.start(**config.hardware['AWG']) # start AWG
 
         args=config.test_params.copy()
-        args.update(config.test_params)
+        args.update(config.hardware['AWG'])
 	spi_awg.configure2SineWave(**args) # configure for 2 sinewaves
 
 	analogue_IO.enable(**config.hardware['IO']) # enable TX on analogue board
