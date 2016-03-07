@@ -45,7 +45,7 @@ def setAmplitude(x):
 def logger():
 	global f, ADC
 	log = True
-        ADC.follow_stream()
+        ADC.follow_stream(**config.hardware['ADC'])
 	output = []
 	while log:
 		try:

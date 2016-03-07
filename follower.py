@@ -114,10 +114,11 @@ class follower(object):
 
         return result
 
-    def follow_stream(self):
+    #SPS: Samples Per Second, this must be calibrated
+    def follow_stream(self, SPS=40000):
         quit = False
         bytes_in_block = 4096*4
-        fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/40000) # /16 -> /4 channels /4 bytes per channel
+        fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
         self._tail -= self._tail % bytes_in_block - bytes_in_block
         plt.ion()
