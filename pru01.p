@@ -134,6 +134,7 @@ loop_label:
 
 		// This is the 24 bit SPI loop 
 		SUB rBits, rBits, 1        // count down through the bits
+		LSL rSamp0, rSamp0, 1
 		QBBC DATAINLOW, r31.t6
 			OR rSamp0, rSamp0, 0x00000001
 			QBA NEXT
@@ -142,7 +143,6 @@ loop_label:
 			QBA NEXT
 			
 		NEXT:
-		LSL rSamp0, rSamp0, 1
 		QBNE SPICLK_BIT, rBits, 0
 		
 		MOV r30.b0, 0x02
@@ -150,7 +150,6 @@ loop_label:
 		// MOV r30.b0,0x00
 
 
-		LSR rSamp0, rSamp0, 1        // SPICLK shifts left too many times left, shift right once
 		AND rSamp0, rSamp0, rSampMask // AND the data with mask to give only the 24 LSBs
 
 		LSL rSamp1, channel_label, 29
