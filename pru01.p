@@ -146,9 +146,6 @@ loop_label:
 		QBNE SPICLK_BIT, rBits, 0
 		
 		MOV r30.b0, 0x02
-		// DISABLE_CLOCK:
-		// MOV r30.b0,0x00
-
 
 		AND rSamp0, rSamp0, rSampMask // AND the data with mask to give only the 24 LSBs
 
@@ -165,15 +162,9 @@ loop_label:
 	    // Update sram with new head
 	    ST32      rHeadPtr, rHeadPtrPtr          // 2
 
-	//		MOV r30.b0,0x00
-	// MOV r15,120
-	// CHANNEL_DELAY:
-	// 	SUB r15, r15, 1
-	//	QBNE CHANNEL_DELAY, r15, 0
 	QBNE CHANNEL_LOOP, channels, 0
 
 
     // Goto top of main loop
-    // MOV r30.b0,0x00
     JMP       loop_label                     // 1
 
