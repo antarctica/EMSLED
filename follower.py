@@ -140,8 +140,8 @@ class follower(object):
               #Disregard the DC component.
               fft.real[0] = 0
 
-              max = np.argmax(np.fabs(fft.real))
-              ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[max]), 12, int(fft.real[max])) 
+              max = np.argmax(np.absolute(fft))
+              ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[max]), 12, int(np.absolute(fft[max]))) 
               if dispFFT:
                 plt.plot(fftfreq, fft.real)
             print ostring
