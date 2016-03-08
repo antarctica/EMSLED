@@ -3,8 +3,9 @@ import numpy as np
 import struct
 import Adafruit_BBIO.GPIO as GPIO
 import matplotlib
-matplotlib.use('GTKagg')
+matplotlib.use('GTKCairo')
 import matplotlib.pyplot as plt
+import time
 
 
 class follower(object):
@@ -104,6 +105,7 @@ class follower(object):
         while ( (diff < bytes_in_block) or (diff > 2*self.PRU_MAX_SHORT_SAMPLES - bytes_in_block) ):
             tail_offset = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
             diff = (tail_offset - head_offset)%(2*self.PRU_MAX_SHORT_SAMPLES)
+            time.sleep(0.02)
 
         # dtype='4<u4' means an array of dimension 4 of 4 unsigned integer written in little endian
         # (16 bytes per row, hence the /16 for the offsets and counts)
@@ -115,27 +117,35 @@ class follower(object):
         return result
 
     #SPS: Samples Per Second, this must be calibrated
-    def follow_stream(self, SPS=40000):
+    def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3]):
         quit = False
         bytes_in_block = 4096*4
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
         self._tail -= self._tail % bytes_in_block - bytes_in_block
-        plt.ion()
-        plt.show()
+        if dispFFT:
+          plt.ion()
+          plt.show()
 
         while (not quit):
             samples=self.get_sample_block(bytes_in_block)
             #Invert dimensions
             channels = np.transpose(samples)
-            #plt.axis([0,1024,-4e10,4e10])
+            if axis != None:
+              plt.axis(axis)
             ostring=""
-            for chan in range(0, 4):
+            for chan in FFTchannels:
               fft = np.fft.rfft(channels[chan])
-              max = np.argmax(np.fabs(fft.real[50:4000]))
-              ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[max+50]), 12, int(fft.real[max+50])) 
-              plt.plot(fftfreq, fft.real)
+
+              #Disregard the DC component.
+              fft.real[0] = 0
+
+              max = np.argmax(np.fabs(fft.real))
+              ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[max]), 12, int(fft.real[max])) 
+              if dispFFT:
+                plt.plot(fftfreq, fft.real)
             print ostring
-            plt.draw()
-            plt.pause(0.001)
-            plt.cla()
+            if dispFFT:
+              plt.draw()
+              plt.pause(0.001)
+              plt.cla()
