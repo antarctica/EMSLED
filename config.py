@@ -26,6 +26,6 @@ hardware = dict(
                         #  physical PRU and length of the wait loops in the pru code
     dispFFT=True,       # Display (or not) the FFT, requires X
     axis=[0,15000,-1e12,1e12], # Axis for the display of the FFT, set to None for auto scaling
-    FFTchannels=[1,2,3] # Channels to comput (and display if enabled) the FFT for
+    FFTchannels=[1,2,3] # Channels to compute (and display if enabled) the FFT for
   )
 )
