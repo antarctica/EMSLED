@@ -44,18 +44,9 @@ def setAmplitude(x):
 
 def logger():
 	global f, ADC
-	log = True
-        ADC.follow_stream(**config.hardware['ADC'])
-	output = []
-	while log:
-		try:
-			line = p.stdout.readline().replace("\n","")
-			if line != '': 
-				output.append(line)
-				print "OUTPUT ",line
-				f.write(line+"\n")
-		except KeyboardInterrupt:
-			log = False	
+        args=config.hardware['ADC'].copy()
+        args.update({'selected_freq': config.test_params['tx_freq']})
+        ADC.follow_stream(**args)
 
 def finish():
 	global f

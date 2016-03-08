@@ -117,12 +117,17 @@ class follower(object):
         return result
 
     #SPS: Samples Per Second, this must be calibrated
-    def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3]):
+    def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3], selected_freq=None):
         quit = False
         bytes_in_block = 4096*4
+
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
+        if selected_freq:
+          selected_index = np.argmin(np.abs(fftfreq - selected_freq))
+
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
         self._tail -= self._tail % bytes_in_block - bytes_in_block
+
         if dispFFT:
           plt.ion()
           plt.show()
@@ -139,9 +144,10 @@ class follower(object):
 
               #Disregard the DC component.
               fft.real[0] = 0
-
-              max = np.argmax(np.absolute(fft))
-              ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[max]), 12, int(np.absolute(fft[max]))) 
+              
+              if selected_freq == None:
+                selected_index = np.argmax(np.absolute(fft))
+              ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[selected_index]), 12, int(np.absolute(fft[selected_index]))) 
               if dispFFT:
                 plt.plot(fftfreq, fft.real)
             print ostring
