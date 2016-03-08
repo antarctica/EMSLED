@@ -100,11 +100,11 @@ loop_label:
 	// MOV r30.b0,0x00
 	MOV channels, 4 
 	// Need to wait at this point until it is ready to take a sample
-	MOV r15,6 
+	MOV r15,3 
 	MOV r30.b0, 0x02
 	CLKH:	
 		SUB r15, r15, 1
-		QBNE CLKH, r15, 2
+		QBNE CLKH, r15, 1
 	MOV r30.b0, 0x00
 	CLKL:
 		SUB r15, r15, 1
@@ -118,12 +118,12 @@ loop_label:
 		MOV rBits, 24 // going to write/read 24 bits (3 bytes) 96 for 4 samples
 	
 	SPICLK_BIT:                     // loop for each of the 24 bits
-		MOV r15, 6
+		MOV r15, 3
 		MOV r30.b0, 0x03 // 0x03
 
 		CLKH2:	
 			SUB r15, r15, 1
-			QBNE CLKH2, r15, 2
+			QBNE CLKH2, r15, 1
 		MOV r30.b0, 0x00
 		CLKL2:
 			SUB r15, r15, 1
