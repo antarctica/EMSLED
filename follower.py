@@ -138,7 +138,7 @@ class follower(object):
             samples=self.get_sample_block(bytes_in_block)
             #Invert dimensions
             channels = np.transpose(samples)
-            if axis != None:
+            if axis != None and dispFFT:
               plt.axis(axis)
             ostring=""
             for chan in FFTchannels:
