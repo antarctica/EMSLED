@@ -2,9 +2,6 @@ import pypruss
 import numpy as np
 import struct
 import Adafruit_BBIO.GPIO as GPIO
-import matplotlib
-matplotlib.use('GTKCairo')
-import matplotlib.pyplot as plt
 import time
 
 
@@ -120,6 +117,10 @@ class follower(object):
 
     #SPS: Samples Per Second, this must be calibrated
     def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3], selected_freq=None):
+        if dispFFT:
+          import matplotlib
+          matplotlib.use('GTKCairo')
+          import matplotlib.pyplot as plt
         quit = False
         bytes_in_block = 4096*4
 
@@ -138,7 +139,7 @@ class follower(object):
             samples=self.get_sample_block(bytes_in_block)
             #Invert dimensions
             channels = np.transpose(samples)
-            if axis != None and dispFFT:
+            if axis != None and dispFFT and self._spare:
               plt.axis(axis)
             ostring=""
             for chan in FFTchannels:
