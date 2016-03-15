@@ -6,8 +6,7 @@
 # autonomous operations of the setup
 
 
-import os,sys
-import subprocess
+import os,sys,signal
 import Adafruit_BBIO.GPIO as GPIO
 import spi_awg
 import analogue_IO
@@ -16,6 +15,10 @@ import follower
 import time # For testing only
 import config
 
+def signal_handler(signum, frame):
+        if signum == signal.SIGINT:
+          print "Ctrl-C received, exitting"
+          finish()
 
 def startup():
 	global f
@@ -58,8 +61,10 @@ def finish():
 
 	analogue_IO.disable() # disable TX
 	GPIO.cleanup() # free GPIO ports
+        exit(0)
 
 if __name__ == "__main__":
+        signal.signal(signal.SIGINT, signal_handler)
 	startup()
 	logger()
 	setPhase(150)
