@@ -16,56 +16,56 @@ import time # For testing only
 import config
 
 def signal_handler(signum, frame):
-        if signum == signal.SIGINT:
-          print "Ctrl-C received, exitting"
-          finish()
+  if signum == signal.SIGINT:
+    print "Ctrl-C received, exitting"
+    finish()
 
 def startup():
-	global f
-        global ADC
-	setup_BB.setup_BB_slots()
-	# prepare log file
-	try:
-		f = open(sys.argv[1],"w")
-	except: f = open("log.txt","w")
+  global f
+  global ADC
+  setup_BB.setup_BB_slots()
+  # prepare log file
+  try:
+    f = open(sys.argv[1],"w")
+  except: f = open("log.txt","w")
 
-	spi_awg.start(**config.hardware['AWG']) # start AWG
+  spi_awg.start(**config.hardware['AWG']) # start AWG
 
-        args=config.test_params.copy()
-        args.update(config.hardware['AWG'])
-	spi_awg.configure2SineWave(**args) # configure for 2 sinewaves
+  args=config.test_params.copy()
+  args.update(config.hardware['AWG'])
+  spi_awg.configure2SineWave(**args) # configure for 2 sinewaves
 
-	analogue_IO.enable(**config.hardware['IO']) # enable TX on analogue board
+  analogue_IO.enable(**config.hardware['IO']) # enable TX on analogue board
 
-        ADC = follower.follower()
-        ADC.power_on()
+  ADC = follower.follower()
+  ADC.power_on()
 
 def setPhase(x):
-	spi_awg.setPhase(x)
+  spi_awg.setPhase(x)
 def setAmplitude(x):
-	spi_awg.setAmplitude(x)
+  spi_awg.setAmplitude(x)
 
 def logger():
-	global f, ADC
-        args=config.hardware['ADC'].copy()
-        args.update({'selected_freq': config.test_params['tx_freq']})
-        ADC.follow_stream(**args)
+  global f, ADC
+  args=config.hardware['ADC'].copy()
+  args.update({'selected_freq': config.test_params['tx_freq']})
+  ADC.follow_stream(**args)
 
 def finish():
-	global f
-	print "Finished"
+  global f
+  print "Finished"
 
-	f.close()
-        ADC.power_off()
-        ADC.stop()
+  f.close()
+  ADC.power_off()
+  ADC.stop()
 
-	analogue_IO.disable() # disable TX
-	GPIO.cleanup() # free GPIO ports
-        exit(0)
+  analogue_IO.disable() # disable TX
+  GPIO.cleanup() # free GPIO ports
+  exit(0)
 
 if __name__ == "__main__":
-        signal.signal(signal.SIGINT, signal_handler)
-	startup()
-	logger()
-	setPhase(150)
-	finish()
+  signal.signal(signal.SIGINT, signal_handler)
+  startup()
+  logger()
+  setPhase(150)
+  finish()
