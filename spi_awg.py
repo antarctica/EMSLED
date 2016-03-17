@@ -36,15 +36,12 @@ def start(PWM_freq=1e7, PWM_duty_cycle=50, clock_divider=2):
 # This appears to be a clock function BUT what for?  Seems to be for old SPI non bit banged bus?  Is this non longer needed?
 def c():
 	GPIO.output("P9_24",GPIO.HIGH)
-	time.sleep(0.001)
 	GPIO.output("P9_24",GPIO.LOW)
-	time.sleep(0.001)
 
 # This appears to be a trigger or CS line BUT what for?  Seems to be for old SPI non bit banged bus?  Is this no longer needed?
 def trigger():
 	print "Trigger"
 	GPIO.output("P9_23",GPIO.HIGH)
-	time.sleep(0.1)
 	GPIO.output("P9_23",GPIO.LOW)
 
 
@@ -177,15 +174,10 @@ def configure2SineWave( tx_freq=5000,
 
 	program()
         writeData(0x27,0x3131,label="Sinewave Mode 1&2")
-        time.sleep(0.1)
         writeData(0x26,0x3131,label="Sinewave Mode 3&4")
-        time.sleep(0.1)
         writeData(0x45,0x0000,label="Static phase/freq")
-        time.sleep(0.1)
         writeData(0x3E,freqMSB,label="Freq MSB") # 0x03 0x62
-        time.sleep(0.1)
         writeData(0x3F,freqLSB,label="Freq LSB")
-        time.sleep(0.1)
         setGain("tx", tx_dcgain)
         setGain("X", bc1_dcgain)
         setGain("Y", bc2_dcgain)
@@ -203,7 +195,6 @@ def setGain(channel, gain):
           raise OverflowError("Gain (%f) must be a number between -2 and 2" % gain)
         DCGain=int(0x400*abs(gain))<<4|(0x8000 if gain < 0 else 0x0000)
         writeData(REGISTERS_GAIN[channel], DCGain, "DC gain %s" % str(channel))
-        time.sleep(0.1)
 
 def setPhaseShift(channel, offset, deg=False):
         if not channel in REGISTERS_PS:
@@ -214,7 +205,6 @@ def setPhaseShift(channel, offset, deg=False):
           mod=np.pi*2
         PS=int((offset%mod) / mod * 0x10000)
         writeData(REGISTERS_PS[channel], PS, "Phase Offset %s" % str(channel))
-        time.sleep(0.1)
 
 
 def setAmplitude(amplitude):
@@ -225,7 +215,6 @@ def setAmplitude(amplitude):
 def setPhase(phase):
 	program()
 	writeData(0x43,phase,label="Phase offset",validate=0) # 0x1000 = 30 degrees ?? 22
-	time.sleep(0.1)
 	run()
 	
 def finish():
@@ -235,7 +224,6 @@ if __name__ == "__main__":
 	configure2SineWave()
 	#for x in range(36):
 	#	setPhase(int(10*x*2**16/360))
-	#	time.sleep(3)
 	
 	#finish()
 	#configureSawtooth()
