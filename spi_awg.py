@@ -10,6 +10,16 @@ import Adafruit_BBIO.GPIO as GPIO
 import Adafruit_BBIO.PWM as PWM
 import time
 
+REGISTERS_GAIN = {'tx': 0x35,
+                  'X':  0x34,
+                  'Y':  0x33,
+                  'Z':  0x32 }
+
+REGISTERS_PS  =  {'tx': 0x43,
+                  'X':  0x42,
+                  'Y':  0x41,
+                  'Z':  0x40 }
+
 def start(PWM_freq=1e7, PWM_duty_cycle=50, clock_divider=2):
 	GPIO.setup("P8_30",GPIO.OUT)	#SPI CS for AWG
 	GPIO.output("P8_30",GPIO.HIGH)	#Set CS high initally - i.e. disabled
@@ -161,10 +171,6 @@ def configure2SineWave( tx_freq=5000,
         freq=int(tx_freq*(2**24*clock_divider/PWM_freq))
         freqMSB=freq>>8
         freqLSB=(freq&0xFF)<<8
-        DC1Gain=int(0x400*abs(tx_dcgain))<<4|(0x8000 if tx_dcgain < 0 else 0x0000)
-        DC2Gain=int(0x400*abs(bc1_dcgain))<<4|(0x8000 if bc1_dcgain < 0 else 0x0000)
-        DC3Gain=int(0x400*abs(bc2_dcgain))<<4|(0x8000 if bc2_dcgain < 0 else 0x0000)
-        DC4Gain=int(0x400*abs(bc3_dcgain))<<4|(0x8000 if bc3_dcgain < 0 else 0x0000)
         PS2=int((bc1_ps%360) / 360.0 * 0x10000)
         PS3=int((bc2_ps%360) / 360.0 * 0x10000)
         PS4=int((bc3_ps%360) / 360.0 * 0x10000)
@@ -180,22 +186,36 @@ def configure2SineWave( tx_freq=5000,
         time.sleep(0.1)
         writeData(0x3F,freqLSB,label="Freq LSB")
         time.sleep(0.1)
-        writeData(0x35,DC1Gain,label="DC gain - TX") # don't go higher than 4000
+        setGain("tx", tx_dcgain)
+        setGain("X", bc1_dcgain)
+        setGain("Y", bc2_dcgain)
+        setGain("Z", bc3_dcgain)
+        setPhaseShift("tx", 0)
+        setPhaseShift("X", bc1_ps, deg=True)
+        setPhaseShift("Y", bc2_ps, deg=True)
+        setPhaseShift("Z", bc3_ps, deg=True)
+        run()
+
+def setGain(channel, gain):
+        if not channel in REGISTERS_GAIN:
+          raise KeyError("Channel '%s' is not a valid channel name" % channel)
+        if gain >= 2 or gain <= -2:
+          raise OverflowError("Gain (%f) must be a number between -2 and 2" % gain)
+        DCGain=int(0x400*abs(gain))<<4|(0x8000 if gain < 0 else 0x0000)
+        writeData(REGISTERS_GAIN[channel], DCGain, "DC gain %s" % str(channel))
         time.sleep(0.1)
-        writeData(0x34,DC2Gain,label="DC gain 2 - Bucking") # careful, can saturate rx coiil
+
+def setPhaseShift(channel, offset, deg=False):
+        if not channel in REGISTERS_PS:
+          raise KeyError("Channel '%s' is not a valid channel name" % channel)
+        if deg:
+          mod=360.0
+        else:
+          mod=np.pi*2
+        PS=int((offset%mod) / mod * 0x10000)
+        writeData(REGISTERS_PS[channel], PS, "Phase Offset %s" % str(channel))
         time.sleep(0.1)
-        writeData(0x33,DC3Gain,label="DC gain 3 - Bucking") # careful, can saturate rx coiil
-        time.sleep(0.1)
-        writeData(0x32,DC4Gain,label="DC gain 4 - Bucking") # careful, can saturate rx coiil
-        time.sleep(0.1)
-        writeData(0x43,0x0000,label="Phase offset 1") # 0x1000 = 30 degrees ?? 22
-        time.sleep(0.1)
-        writeData(0x42,PS2,label="Phase offset 2") # 0x1000 = 30 degrees ?? 22
-        time.sleep(0.1)
-        writeData(0x41,PS3,label="Phase offset 3") # 0x1000 = 30 degrees ?? 22
-        time.sleep(0.1)
-        writeData(0x40,PS4,label="Phase offset 4") # 0x1000 = 30 degrees ?? 22
-	run()
+
 
 def setAmplitude(amplitude):
 	program()
