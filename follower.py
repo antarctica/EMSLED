@@ -3,6 +3,7 @@ import numpy as np
 import struct
 import Adafruit_BBIO.GPIO as GPIO
 import time
+from sample import sample,waveform
 
 
 class follower(object):
@@ -122,7 +123,10 @@ class follower(object):
           matplotlib.use('GTKCairo')
           import matplotlib.pyplot as plt
         quit = False
-        bytes_in_block = 4096*4
+        if selected_freq:
+          bytes_in_block=int(1.0*SPS/selected_freq*400)*4
+        else:
+          bytes_in_block = 4096*4
 
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         if selected_freq:
@@ -153,10 +157,70 @@ class follower(object):
               ostring += "Channel " + str(chan) + ": %-*sHz = %-*s\t" %  (5, int(fftfreq[selected_index]), 12, int(np.average(np.absolute(fft[selected_index-5:selected_index+5])))) 
               if dispFFT and self._spare:
                 plt.plot(fftfreq, np.absolute(fft), label="Channel %d"%chan)
-                #plt.plot(channels[chan])
+                #plt.plot(channels[chan], label="Channel %d"%chan)
             print ostring
             if dispFFT and self._spare:
               plt.legend()
               plt.draw()
               plt.pause(0.001)
               plt.cla()
+
+    def get_sample_freq(self, selected_freq, SPS=40000, dispFFT=False, FFTchannels=[1,2,3], axis=None):
+        bytes_in_block=int(1.0*SPS/selected_freq*400)*4
+        fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
+        selected_index = np.argmin(np.abs(fftfreq - selected_freq))
+        
+        self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
+        self._tail -= self._tail % bytes_in_block - bytes_in_block
+
+        samples=self.get_sample_block(bytes_in_block)
+
+        #Invert dimensions
+        channels = np.transpose(samples)
+
+        ref_wave = waveform(selected_freq, np.fft.rfft(channels[0])[selected_index])
+        selected_sample = sample(ref_wave)
+        for chan in FFTchannels:
+          fft = np.fft.rfft(channels[chan])
+          chan_wave=waveform(selected_freq, fft[selected_index])
+          selected_sample.add_channel(chan_wave)
+        return selected_sample
+
+
+
+    def display_phase_shift(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], selected_freq=None):
+        FFTchannels = range(0, 4)
+        quit = False
+        if selected_freq:
+          bytes_in_block=int(1.0*SPS/selected_freq*400)*4
+        else:
+          bytes_in_block = 4096*4
+        width=0
+
+        fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
+        if selected_freq:
+          selected_index = np.argmin(np.abs(fftfreq - selected_freq))
+        print fftfreq[selected_index]
+
+        self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
+        self._tail -= self._tail % bytes_in_block - bytes_in_block
+
+        while (not quit):
+            samples=self.get_sample_block(bytes_in_block)
+            #Invert dimensions
+            channels = np.transpose(samples)
+            ostring=""
+            for chan in FFTchannels:
+              fft = np.fft.rfft(channels[chan])
+              #Disregard the DC component.
+              if selected_freq == None:
+                selected_index = np.argmax(np.absolute(fft))
+              if width:
+                selected_index2 = np.argmax(np.absolute(fft[selected_index-width:selected_index+width])) + selected_index - width
+              else:
+                selected_index2 = selected_index
+              if chan==0:
+                ref_bin=fft[selected_index2]
+              else:
+                ostring += "Channel " + str(chan) + " Phase Shift: %-*sdeg\t" %  (3, int(np.angle(fft[selected_index2]/ref_bin, deg=1))%360) 
+            print ostring
