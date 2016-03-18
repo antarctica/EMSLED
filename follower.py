@@ -95,7 +95,7 @@ class follower(object):
         # In theory we could wrap around the end of the buffer but in practice 
         # (2*self.PRU_MAX_SHORT_SAMPLES) should be a multiple of bytes_in_block
         # This allows for much simpler code
-        head_offset = self._tail
+        head_offset = (self._tail // 4096) * 4096
         if (head_offset + bytes_in_block) > 2*self.PRU_MAX_SHORT_SAMPLES:
           head_offset=0
 
@@ -113,7 +113,7 @@ class follower(object):
         result = np.frombuffer(self._extmem, dtype='4<i4', count=bytes_in_block/16, offset=head_offset/16)
         result.dtype = np.int32
 
-        self._tail = (self._tail + bytes_in_block)%(2*self.PRU_MAX_SHORT_SAMPLES)
+        self._tail = (head_offset + bytes_in_block)%(2*self.PRU_MAX_SHORT_SAMPLES)
 
         return result
 
@@ -123,9 +123,11 @@ class follower(object):
           import matplotlib
           matplotlib.use('GTKCairo')
           import matplotlib.pyplot as plt
+          plt.ion()
+          plt.show()
         quit = False
         if selected_freq:
-          bytes_in_block=int(1.0*SPS/selected_freq*400)*4
+          bytes_in_block=int(1.0*SPS/selected_freq*100)*16
         else:
           bytes_in_block = 4096*4
 
@@ -135,10 +137,6 @@ class follower(object):
 
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
         self._tail -= self._tail % bytes_in_block - bytes_in_block
-
-        if dispFFT:
-          plt.ion()
-          plt.show()
 
         while (not quit):
             samples=self.get_sample_block(bytes_in_block)
