@@ -28,7 +28,7 @@ def startup():
   global ADC
 
   # Setup Logging
-  logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+  logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
   setup_BB.setup_BB_slots()
 
@@ -36,11 +36,15 @@ def startup():
 
   args=config.test_params.copy()
   args.update(config.hardware['AWG'])
+  logging.info("[LOGGER] Starting the AWG")
   AWG.configure2SineWave(**args) # configure for 2 sinewaves
 
+  logging.info("[LOGGER] Settin analogue amplification")
   analogue_IO.enable(**config.hardware['IO']) # enable TX on analogue board
 
+  logging.info("[LOGGER] Loading ADC PRU code")
   ADC = follower.follower()
+  logging.info("[LOGGER] TX Power on and start sampling")
   ADC.power_on()
 
 def setPhase(x):
@@ -68,6 +72,7 @@ def finish():
   exit(0)
 
 def calibrate():
+  logging.info("[LOGGER] Starting calibration procedure")
   global ADC
   target_amp = 2**35
   args_adc = config.hardware['ADC'].copy()
