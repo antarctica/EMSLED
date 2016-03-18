@@ -41,7 +41,7 @@ def c():
 
 # This appears to be a trigger or CS line BUT what for?  Seems to be for old SPI non bit banged bus?  Is this no longer needed?
 def trigger():
-	logging.debug("Triggerring the AWG")
+	logging.debug("[AWG] Triggerring")
 	GPIO.output("P9_23",GPIO.HIGH)
 	GPIO.output("P9_23",GPIO.LOW)
 
@@ -80,7 +80,6 @@ def sendData(addr,data,rx=0):
 			ddr_mem = mmap.mmap(f.fileno(), PRU_ICSS_LEN, offset=PRU_ICSS) 
 			# local = struct.unpack('LLLL', ddr_mem[RAM1_START:RAM1_START+16])
 			shared = struct.unpack('L', ddr_mem[RAM2_START:RAM2_START+4])
-			logging.debug("[AWG] Readback value: %s" % hex(shared[0]))
 		f.close()
 	pypruss.exit()							# Exit
 	if (rx == 1):
@@ -90,17 +89,21 @@ def sendData(addr,data,rx=0):
 
 
 def writeData(addr,value,label="",validate=1):
-	out = ""
-	while ( out != value):
+        tries = 3
+	for attempt in range(tries):
 		c()
 		sendData(addr,value)
 		c()
 		sendData(0x1D,0x0001)
 		c()
 		out = sendData(addr,0x0000,rx=1)
-	
-		logging.debug("[AWG] Result of the write command %s=%s %s %s" % (label,hex(out),hex(value),str(out==value)))
-		if validate == 0: out = value
+	        if out==value:
+                  logging.debug("[AWG] Write command successful '%s', Sent '%s', Read back '%s'" % (label,hex(out),hex(value)))
+                  break
+                elif validate and attempt == 0:
+                  raise IOError("Failed to send command to the AWG")
+                else:
+                  logging.info("[AWG] Write command unsuccessful '%s', Sent '%s', Read back '%s'" % (label,hex(out),hex(value)))
 	return out
 
 def getData(addr,label="",output=1):
