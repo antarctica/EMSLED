@@ -8,12 +8,15 @@
 
 import os,sys,signal
 import Adafruit_BBIO.GPIO as GPIO
-import spi_awg
+import spi_awg as AWG
 import analogue_IO
 import setup_BB
 import follower
 import time # For testing only
 import config
+import numpy as np
+import logging
+
 
 def signal_handler(signum, frame):
   if signum == signal.SIGINT:
@@ -23,17 +26,17 @@ def signal_handler(signum, frame):
 def startup():
   global f
   global ADC
-  setup_BB.setup_BB_slots()
-  # prepare log file
-  try:
-    f = open(sys.argv[1],"w")
-  except: f = open("log.txt","w")
 
-  spi_awg.start(**config.hardware['AWG']) # start AWG
+  # Setup Logging
+  logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
+  setup_BB.setup_BB_slots()
+
+  AWG.start(**config.hardware['AWG']) # start AWG
 
   args=config.test_params.copy()
   args.update(config.hardware['AWG'])
-  spi_awg.configure2SineWave(**args) # configure for 2 sinewaves
+  AWG.configure2SineWave(**args) # configure for 2 sinewaves
 
   analogue_IO.enable(**config.hardware['IO']) # enable TX on analogue board
 
@@ -41,27 +44,46 @@ def startup():
   ADC.power_on()
 
 def setPhase(x):
-  spi_awg.setPhase(x)
+  AWG.setPhase(x)
 def setAmplitude(x):
-  spi_awg.setAmplitude(x)
+  AWG.setAmplitude(x)
 
 def logger():
-  global f, ADC
+  global ADC
   args=config.hardware['ADC'].copy()
   args.update({'selected_freq': config.test_params['tx_freq']})
+  calibrate()
+  finish()
   ADC.follow_stream(**args)
+  ADC.display_phase_shift(**args)
 
 def finish():
-  global f
   print "Finished"
 
-  f.close()
   ADC.power_off()
   ADC.stop()
 
   analogue_IO.disable() # disable TX
   GPIO.cleanup() # free GPIO ports
   exit(0)
+
+def calibrate():
+  global ADC
+  target_amp = 2**35
+  args_adc = config.hardware['ADC'].copy()
+  args_adc.update({'selected_freq': config.test_params['tx_freq']})
+
+  for chan in AWG.REGISTERS_GAIN:
+    AWG.setGain(chan, 0)
+    AWG.setPhaseShift(chan, 0)
+
+  analogue_IO.enable(gain = 0)
+  for txgain in np.linspace(0.01, 1.99, 199):
+    AWG.setGain('tx', txgain)
+    ADC = follower.follower()
+    ADC.power_on()
+    time.sleep(1)
+    print ADC.get_sample_freq(**args_adc)
 
 if __name__ == "__main__":
   signal.signal(signal.SIGINT, signal_handler)

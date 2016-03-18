@@ -9,6 +9,7 @@ import mmap,struct
 import Adafruit_BBIO.GPIO as GPIO
 import Adafruit_BBIO.PWM as PWM
 import time
+import logging
 
 REGISTERS_GAIN = {'tx': 0x35,
                   'X':  0x34,
@@ -40,7 +41,7 @@ def c():
 
 # This appears to be a trigger or CS line BUT what for?  Seems to be for old SPI non bit banged bus?  Is this no longer needed?
 def trigger():
-	print "Trigger"
+	logging.debug("Triggerring the AWG")
 	GPIO.output("P9_23",GPIO.HIGH)
 	GPIO.output("P9_23",GPIO.LOW)
 
@@ -79,7 +80,7 @@ def sendData(addr,data,rx=0):
 			ddr_mem = mmap.mmap(f.fileno(), PRU_ICSS_LEN, offset=PRU_ICSS) 
 			# local = struct.unpack('LLLL', ddr_mem[RAM1_START:RAM1_START+16])
 			shared = struct.unpack('L', ddr_mem[RAM2_START:RAM2_START+4])
-			print hex(shared[0])
+			logging.debug("[AWG] Readback value: %s" % hex(shared[0]))
 		f.close()
 	pypruss.exit()							# Exit
 	if (rx == 1):
@@ -98,7 +99,7 @@ def writeData(addr,value,label="",validate=1):
 		c()
 		out = sendData(addr,0x0000,rx=1)
 	
-		print label,"=",hex(out),hex(value),out==value
+		logging.debug("[AWG] Result of the write command %s=%s %s %s" % (label,hex(out),hex(value),str(out==value)))
 		if validate == 0: out = value
 	return out
 
@@ -106,7 +107,7 @@ def getData(addr,label="",output=1):
 	c()
 	out = sendData(addr,0x0000,rx=1)
 	if label != "":
-		print label,hex(out)
+		logging.debug("[AWG] Result of write command %s=%s" % (label,hex(out)))
 	return out
 		
 

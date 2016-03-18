@@ -4,6 +4,7 @@ import struct
 import Adafruit_BBIO.GPIO as GPIO
 import time
 from sample import sample,waveform
+import logging
 
 
 class follower(object):
@@ -28,34 +29,34 @@ class follower(object):
 
         self._spare = 0
 
-        print "\tINFO: setting up power control line\n"
+        logging.debug("[ADC] setting up power control line")
         GPIO.setup("P9_18",GPIO.OUT)
 
-        print "\tINFO: pruss init\n"
+        logging.debug("[ADC] pruss init")
         pypruss.init()						# Init the PRU
 
-        print "\tINFO: pruss open\n"
+        logging.debug("[ADC] pruss open")
         ret = pypruss.open(self.PRU_EVTOUT_0)
 
-        print "\tINFO: pruss intc init\n"
+        logging.debug("[ADC] pruss intc init")
         pypruss.pruintc_init()					# Init the interrupt controller
 
-        print "\tINFO: mapping memory \n"
+        logging.debug("[ADC] mapping memory")
         self._data = pypruss.map_prumem(pru_dataram)
         
-        print "\tINFO: data segment len=" + str(len(self._data)) + "\n"
+        logging.debug("[ADC] data segment len=%d" % len(self._data))
         
-        print "\tINFO: setting tail \n"
+        logging.debug("[ADC] setting tail")
         self._tail = 0
         struct.pack_into('l', self._data, self.PRU0_OFFSET_DRAM_HEAD, self._tail)
         
-        print "\tINFO: mapping extmem \n"
+        logging.debug("[ADC] mapping extmem")
         self._extmem = pypruss.map_extmem()
-        print "\tINFO: ext segment len=" + str(len(self._extmem))
+        logging.debug("[ADC] ext segment len=%d" % len(self._extmem))
 
-        print "\tINFO: setup mem \n"
+        logging.debug("[ADC] setup mem")
         self.ddrMem = pypruss.ddr_addr()
-        print "V extram_base = " + hex(self.ddrMem) + "\n"
+        logging.debug("[ADC] V extram_base = 0x%x" % self.ddrMem)
 
         self._pru01_phys = int(open("/sys/class/uio/uio1/maps/map1/addr", 'r').read(), 16)
         struct.pack_into('L', self._data, self.PRU0_OFFSET_SRAM_HEAD, 0)
@@ -67,10 +68,10 @@ class follower(object):
         struct.pack_into('L', self._data, self.PRU0_OFFSET_RES2, 0xbabedead)
         struct.pack_into('L', self._data, self.PRU0_OFFSET_RES3, 0xbeefcafe)
         
-        print "\tINFO: loading pru00 code \n"
+        logging.debug("[ADC] loading pru00 code")
         pypruss.exec_program(0, pru0_fw)
         
-        print "\tINFO: loading pru01 code \n"
+        logging.debug("[ADC] loading pru01 code")
         pypruss.exec_program(1, pru1_fw)
 
     def power_on(self=None):
@@ -200,7 +201,6 @@ class follower(object):
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         if selected_freq:
           selected_index = np.argmin(np.abs(fftfreq - selected_freq))
-        print fftfreq[selected_index]
 
         self._tail = struct.unpack_from("l", self._data, self.PRU0_OFFSET_DRAM_HEAD)[0]
         self._tail -= self._tail % bytes_in_block - bytes_in_block
