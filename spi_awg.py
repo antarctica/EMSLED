@@ -210,27 +210,9 @@ def setPhaseShift(channel, offset, deg=False):
         PS=int((offset%mod) / mod * 0x10000)
         writeData(REGISTERS_PS[channel], PS, "Phase Offset %s" % str(channel))
 
-
-def setAmplitude(amplitude):
-	program()
-	writeData(0x34,amplitude,label="DC gain 2 - Bucking",validate=0) # careful, can saturate rx coiil
-	run()
-
-def setPhase(phase):
-	program()
-	writeData(0x43,phase,label="Phase offset",validate=0) # 0x1000 = 30 degrees ?? 22
-	run()
 	
 def finish():
 	GPIO.cleanup()
 if __name__ == "__main__":
 	start()
 	configure2SineWave()
-	#for x in range(36):
-	#	setPhase(int(10*x*2**16/360))
-	
-	#finish()
-	#configureSawtooth()
-	# print writeData(0x27,0x3233)
-	# getRegisterMap()
-
