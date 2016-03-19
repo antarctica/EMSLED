@@ -103,7 +103,7 @@ def writeData(addr,value,label="",validate=1):
                 elif validate and attempt == 0:
                   raise IOError("Failed to send command to the AWG")
                 else:
-                  logging.info("[AWG] Write command unsuccessful '%s', Sent '%s', Read back '%s'" % (label,hex(out),hex(value)))
+                  logging.warning("[AWG] Write command unsuccessful '%s', Sent '%s', Read back '%s'" % (label,hex(out),hex(value)))
 	return out
 
 def getData(addr,label="",output=1):
