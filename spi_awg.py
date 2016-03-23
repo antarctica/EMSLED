@@ -98,12 +98,12 @@ def writeData(addr,value,label="",validate=1):
 		c()
 		out = sendData(addr,0x0000,rx=1)
 	        if out==value:
-                  logging.debug("[AWG] Write command successful '%s', Sent '%s', Read back '%s'" % (label,hex(out),hex(value)))
+                  logging.debug("[AWG] Write command successful '%s', Sent '%s', Read back '%s'" % (label,hex(value),hex(out)))
                   break
-                elif validate and attempt == 0:
-                  raise IOError("Failed to send command to the AWG")
+                elif validate and attempt == tries - 1:
+                  raise IOError("Failed to send command to the AWG for %s after %d attempts" % (label, tries))
                 else:
-                  logging.warning("[AWG] Write command unsuccessful '%s', Sent '%s', Read back '%s'" % (label,hex(out),hex(value)))
+                  logging.warning("[AWG] Write command unsuccessful '%s', Sent '%s', Read back '%s'" % (label,hex(value),hex(out)))
 	return out
 
 def getData(addr,label="",output=1):
@@ -192,15 +192,21 @@ def configure2SineWave( tx_freq=5000,
         setPhaseShift("Z", bc3_ps, deg=True)
         run()
 
-def setGain(channel, gain):
+def setGain(channel, gain, oneshot=False):
+        if oneshot:
+          program()
         if not channel in REGISTERS_GAIN:
           raise KeyError("Channel '%s' is not a valid channel name" % channel)
         if gain >= 2 or gain <= -2:
           raise OverflowError("Gain (%f) must be a number between -2 and 2" % gain)
         DCGain=int(0x400*abs(gain))<<4|(0x8000 if gain < 0 else 0x0000)
         writeData(REGISTERS_GAIN[channel], DCGain, "DC gain %s" % str(channel))
+        if oneshot:
+          run()
 
-def setPhaseShift(channel, offset, deg=False):
+def setPhaseShift(channel, offset, deg=False, oneshot=False):
+        if oneshot:
+          program()
         if not channel in REGISTERS_PS:
           raise KeyError("Channel '%s' is not a valid channel name" % channel)
         if deg:
@@ -209,6 +215,8 @@ def setPhaseShift(channel, offset, deg=False):
           mod=np.pi*2
         PS=int((offset%mod) / mod * 0x10000)
         writeData(REGISTERS_PS[channel], PS, "Phase Offset %s" % str(channel))
+        if oneshot:
+          run()
 
 	
 def finish():
