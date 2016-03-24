@@ -41,14 +41,6 @@ def startup():
   logging.info("[CALIBRATION] Starting the AWG")
   AWG.configure2SineWave(**args) # configure for 2 sinewaves
 
-  logging.info("[CALIBRATION] Setting up analogue amplification")
-  analogue_IO.enable(**config.hardware['IO']) # enable TX on analogue board
-
-  logging.info("[CALIBRATION] Loading ADC PRU code")
-  ADC = follower.follower()
-  logging.info("[CALIBRATION] TX Power on and start sampling")
-  ADC.power_on()
-
 def setPhase(x):
   AWG.setPhase(x)
 def setAmplitude(x):
@@ -74,8 +66,8 @@ def finish():
 def calibrate():
   logging.info("[CALIBRATION] Starting calibration procedure")
   global ADC
-  max_amp = 2**32
   target_coeff = 1
+  max_amp = 1e11
   args_adc = config.hardware['ADC'].copy()
   args_adc.update({'selected_freq': config.test_params['tx_freq']})
   zero_gains()
@@ -84,7 +76,7 @@ def calibrate():
     logging.info("[CALIBRATION] - Calibration, searching channel %s", chan)
     ADC = follower.follower()
     ADC.power_on()
-    amplitude_tx = noise_level = get_trimmed_mean_amp(args_adc, chan, max_dev=1)
+    amplitude_tx = noise_level = get_trimmed_mean_amp(args_adc, chan, max_dev=1.0)
     ADC.stop()
     logging.debug("[CALIBRATION] - Find tx_coeff (what's the read amplitude it the current channel for a tx gain of 1)")
     tx_coeff = get_tx_coeff(args_adc, 0.001, max_amp, 'tx', chan)
@@ -103,31 +95,19 @@ def calibrate():
     AWG.setGain(chan, test_bc_gain)
     AWG.run()
     best_phase = phase_min(args_adc, chan, samples=10)
-    logging.debug("[CALIBRATION] - Use the coefficients we've found to find the best phase shift (2nd step)")
-    AWG.program()
-    AWG.setGain('tx', 0)
-    AWG.setPhaseShift(chan, best_phase, deg=True)
-    AWG.run()
     logging.info("[CALIBRATION] - Channel %s first pass results: tx=%f, bc=%f @ %f deg", chan, test_tx_gain, test_bc_gain, best_phase)
     # Now for the fine tuning:
     if tx_coeff >= bc_coeff:
       # Then our maximum tx_gain will be 1 and the bucking gain will be <1
+      tx_gain = target_coeff
+      bc_gain = target_coeff * bc_coeff / tx_coeff
       while True:
-        tx_gain = target_coeff
-        bc_gain = bc_coeff / tx_coeff
         AWG.program()
         AWG.setGain('tx', tx_gain)
         AWG.setGain(chan, bc_gain)
         AWG.setPhaseShift(chan, best_phase, deg=True)
         AWG.run()
-        current_amp = get_trimmed_mean_amp(args_adc, chan)
-        ADC = follower.follower()
-        ADC.power_on()
-        waveform_now = ADC.get_sample_freq(**args_adc)
-        ADC.stop()
-        if abs(waveform_now.compare_phase_shift(ord(chan) - ord('X'), waveform_tx_only)) > np.pi / 2:
-          # The secondary field (from the bucking coil) is stronger, read a negative amplitude
-          current_amp = -current_amp
+        current_amp = get_trimmed_mean_amp(args_adc, chan, ref_sample=waveform_tx_only)
         logging.info("[CALIBRATION] - I am a lazy program, giving up for now, channel %s residual signal amplitude: %f with tx=%f and bc=%f %f deg", chan, current_amp, tx_gain, bc_gain, best_phase)
         break
     else:
@@ -149,16 +129,23 @@ def phase_min(args_adc, chan, samples=3):
     AWG.setPhaseShift(chan, phase, deg=True, oneshot=True)
     amplitude_ps.append(get_trimmed_mean_amp(args_adc, chan, samples=samples))
     print "PHASE: %d:%d" % (int(phase), int(amplitude_ps[-1]))
-  fft = np.fft.rfft(amplitude_ps)
-  return np.angle(fft[1], deg=True)%360
+  fft = np.fft.rfft(np.square(amplitude_ps))
+  angle = np.angle(fft[1], deg=True)%360
+  minimum = (180 - angle) % 360
+  return minimum
 
-def get_trimmed_mean_amp(args_adc, chan, max_dev=None, samples=3):
+def get_trimmed_mean_amp(args_adc, chan, max_dev=None, samples=3, ref_sample=None):
   amps = []
   ADC = follower.follower()
   ADC.power_on()
   for i in range(samples):
     sample = ADC.get_sample_freq(**args_adc)
-    amps.append(sample.channels[ord(chan) - ord('X')].get_amplitude())
+    sign = +1
+    if ref_sample != None:
+      if abs(sample.compare_phase_shift(ord(chan) - ord('X'), ref_sample)) > np.pi / 2:
+        sign = -1
+        print "Negative"
+    amps.append(sign * sample.channels[ord(chan) - ord('X')].get_amplitude())
   ADC.stop()
   avg = np.average(amps)
   if max_dev:
