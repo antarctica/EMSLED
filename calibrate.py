@@ -108,10 +108,6 @@ def calibrate():
     AWG.setGain('tx', 0)
     AWG.setPhaseShift(chan, best_phase, deg=True)
     AWG.run()
-    ADC = follower.follower()
-    ADC.power_on()
-    waveform_bc_only = ADC.get_sample_freq(**args_adc)
-    ADC.stop()
     logging.info("[CALIBRATION] - Channel %s first pass results: tx=%f, bc=%f @ %f deg", chan, test_tx_gain, test_bc_gain, best_phase)
     # Now for the fine tuning:
     if tx_coeff >= bc_coeff:
@@ -129,9 +125,8 @@ def calibrate():
         ADC.power_on()
         waveform_now = ADC.get_sample_freq(**args_adc)
         ADC.stop()
-        if (  abs(waveform_now.compare_phase_shift(ord(chan) - ord('X'), waveform_tx_only)) \
-            > abs(waveform_now.compare_phase_shift(ord(chan) - ord('X'), waveform_bc_only))):
-            # The secondary field (from the bucking coil) is stronger, read a negative amplitude
+        if abs(waveform_now.compare_phase_shift(ord(chan) - ord('X'), waveform_tx_only)) > np.pi / 2:
+          # The secondary field (from the bucking coil) is stronger, read a negative amplitude
           current_amp = -current_amp
         logging.info("[CALIBRATION] - I am a lazy program, giving up for now, channel %s residual signal amplitude: %f with tx=%f and bc=%f %f deg", chan, current_amp, tx_gain, bc_gain, best_phase)
         break
