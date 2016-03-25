@@ -97,10 +97,10 @@ def calibrate():
     best_phase = phase_min(args_adc, chan, samples=10)
     logging.info("[CALIBRATION] - Channel %s first pass results: tx=%f, bc=%f @ %f deg", chan, test_tx_gain, test_bc_gain, best_phase)
     # Now for the fine tuning:
-    if tx_coeff >= bc_coeff:
+    if tx_coeff <= bc_coeff:
       # Then our maximum tx_gain will be 1 and the bucking gain will be <1
       tx_gain = target_coeff
-      bc_gain = target_coeff * bc_coeff / tx_coeff
+      bc_gain = target_coeff * tx_coeff / bc_coeff
       while True:
         AWG.program()
         AWG.setGain('tx', tx_gain)
