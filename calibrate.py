@@ -68,10 +68,11 @@ def calibrate():
   global ADC
   target_coeff = 1
   max_amp = 1e11
+  target_snr = 2
   args_adc = config.hardware['ADC'].copy()
   args_adc.update({'selected_freq': config.test_params['tx_freq']})
   zero_gains()
-  analogue_IO.enable(gain = 0)
+  analogue_IO.enable(gain = 2)
   for chan in ["X", "Y", "Z"]:
     logging.info("[CALIBRATION] - Calibration, searching channel %s", chan)
     ADC = follower.follower()
@@ -97,21 +98,30 @@ def calibrate():
     best_phase = phase_min(args_adc, chan, samples=10)
     logging.info("[CALIBRATION] - Channel %s first pass results: tx=%f, bc=%f @ %f deg", chan, test_tx_gain, test_bc_gain, best_phase)
     # Now for the fine tuning:
-    if tx_coeff <= bc_coeff:
-      # Then our maximum tx_gain will be 1 and the bucking gain will be <1
-      tx_gain = target_coeff
-      bc_gain = target_coeff * tx_coeff / bc_coeff
-      while True:
-        AWG.program()
-        AWG.setGain('tx', tx_gain)
-        AWG.setGain(chan, bc_gain)
-        AWG.setPhaseShift(chan, best_phase, deg=True)
-        AWG.run()
-        current_amp = get_trimmed_mean_amp(args_adc, chan, ref_sample=waveform_tx_only)
-        logging.info("[CALIBRATION] - I am a lazy program, giving up for now, channel %s residual signal amplitude: %f with tx=%f and bc=%f %f deg", chan, current_amp, tx_gain, bc_gain, best_phase)
+    while True:
+      if tx_coeff <= bc_coeff:
+        tx_gain = target_coeff
+        bc_gain = target_coeff * tx_coeff / bc_coeff
+      else:
+        bc_gain = target_coeff
+        tx_gain = target_coeff * bc_coeff / tx_coeff
+      AWG.program()
+      AWG.setGain('tx', tx_gain)
+      AWG.setGain(chan, bc_gain)
+      AWG.setPhaseShift(chan, best_phase, deg=True)
+      AWG.run()
+      current_amp = get_trimmed_mean_amp(args_adc, chan, ref_sample=waveform_tx_only)
+      print "Bucking gain = %f, residual amp = %f" % (bc_gain, current_amp)
+      if abs(current_amp) > target_snr * noise_level:
+        #We still have work to do then...
+        if tx_coeff <= bc_coeff:
+          bc_coeff = (((target_coeff * tx_coeff) -  current_amp) / bc_gain + bc_coeff) / 2
+        else:
+          tx_coeff = (((target_coeff * bc_coeff) -  current_amp) / tx_gain + tx_coeff) / 2
+      else:
+        #We found acceptable parameters!
+        logging.info("[CALIBRATION] - Channel %s residual signal amplitude: %f with tx=%f and bc=%f %f deg", chan, current_amp, tx_gain, bc_gain, best_phase)
         break
-    else:
-      logging.info("[CALIBRATION] - I am a lazy program, bc_coeff > tx_coeff not implemented, channel %s", chan)
 
 
 def get_tx_coeff(args_adc, start_gain, max_amp, chantx, chanrx):
