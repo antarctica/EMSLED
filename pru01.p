@@ -109,8 +109,7 @@ loop_label:
 	CLKL:
 		SUB r15, r15, 1
 		QBNE CLKL, r15, 0
-	QBBC CHANNEL_LOOP, r31.t5 // data is ready!
-	QBA loop_label
+	QBBS loop_label, r31.t5 // data is ready!
 
 	CHANNEL_LOOP:
 					
