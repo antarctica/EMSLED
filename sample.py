@@ -34,11 +34,20 @@ class sample(object):
       raise ValueError('Samples can only contain waveforms of same frequency')
     self.channels.append(channel)
 
-  def phase_shift(self, channel, deg=0):
+  def get_phase_shift(self, channel, deg=0):
     return self.channels[channel].get_phase_shift(self.reference, deg)
+
+  def compare_phase_shift(self, channel, sample, deg=0):
+    ps1 = self.get_phase_shift(channel)
+    ps2 = sample.get_phase_shift(channel)
+    result = (ps1 - ps2 + np.pi) % (2*np.pi) - np.pi
+    if deg:
+      result *= 180/np.pi
+    return result
 
   def __str__(self):
     ostring="%d;%d" % (self.reference.get_amplitude(), int(self.reference.get_phase_shift(deg=1)))
     for channel in self.channels:
       ostring += ";%d;%d" % (channel.get_amplitude(), int(channel.get_phase_shift(deg=1)))
     return ostring
+
