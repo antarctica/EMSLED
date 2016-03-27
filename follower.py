@@ -75,9 +75,13 @@ class follower(object):
         pypruss.exec_program(1, pru1_fw)
 
     def power_on(self=None):
+        logging.debug("[ADC] Powering the ADC on")
         GPIO.output("P9_18",GPIO.HIGH)
+        #Wait for everything to come to life
+        time.sleep(1)
 
     def power_off(self=None):
+        logging.debug("[ADC] Powering the ADC off")
         GPIO.output("P9_18",GPIO.LOW)
 
     def stop(self):
@@ -127,7 +131,7 @@ class follower(object):
           plt.show()
         quit = False
         if selected_freq:
-          bytes_in_block=int(1.0*SPS/selected_freq*100)*16
+          bytes_in_block=int(1.0*SPS/selected_freq*100)*4
         else:
           bytes_in_block = 4096*4
 
@@ -165,7 +169,7 @@ class follower(object):
               plt.cla()
 
     def get_sample_freq(self, selected_freq, SPS=40000, dispFFT=False, FFTchannels=[1,2,3], axis=None):
-        bytes_in_block=int(1.0*SPS/selected_freq*400)*4
+        bytes_in_block=int(1.0*SPS/selected_freq*100)*4
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         selected_index = np.argmin(np.abs(fftfreq - selected_freq))
         
@@ -184,7 +188,6 @@ class follower(object):
           chan_wave=waveform(selected_freq, fft[selected_index])
           selected_sample.add_channel(chan_wave)
         return selected_sample
-
 
 
     def display_phase_shift(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], selected_freq=None):
