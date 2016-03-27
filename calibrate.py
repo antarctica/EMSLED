@@ -18,6 +18,7 @@ import time # For testing only
 import config
 import numpy as np
 import logging
+import pprint
 
 
 def signal_handler(signum, frame):
@@ -69,6 +70,7 @@ def calibrate():
   target_coeff = 1
   max_amp = 1e11
   target_snr = 2
+  parameters = {'bc': [], 'tx': []}
   args_adc = config.hardware['ADC'].copy()
   args_adc.update({'selected_freq': config.test_params['tx_freq']})
   zero_gains()
@@ -111,7 +113,7 @@ def calibrate():
       AWG.setPhaseShift(chan, best_phase, deg=True)
       AWG.run()
       current_amp = get_trimmed_mean_amp(args_adc, chan, ref_sample=waveform_tx_only)
-      print "Bucking gain = %f, residual amp = %f" % (bc_gain, current_amp)
+      logging.debug("Bucking gain = %f, residual amp = %f" , bc_gain, current_amp)
       if abs(current_amp) > target_snr * noise_level:
         #We still have work to do then...
         if tx_coeff <= bc_coeff:
@@ -121,8 +123,25 @@ def calibrate():
       else:
         #We found acceptable parameters!
         logging.info("[CALIBRATION] - Channel %s residual signal amplitude: %f with tx=%f and bc=%f %f deg", chan, current_amp, tx_gain, bc_gain, best_phase)
+        parameters['tx'].append(tx_gain)
+        parameters['bc'].append({'gain': bc_gain, 'ps': best_phase})
         break
+  print_parameters(parameters)
 
+def print_parameters(parameters):
+  if not ('tx' in parameters and 'bc' in parameters):
+    raise KeyError("The 'paramters' argumet to the 'print_parameters' function should  be a dictionary with at least the keys 'tx' and 'bc'")
+  txmin = min(parameters['tx'])
+  test_params =  {
+   'bc1_dcgain': parameters['bc'][0]['gain'] / parameters['tx'][0] * txmin,
+   'bc1_ps': parameters['bc'][0]['ps'],
+   'bc2_dcgain': parameters['bc'][1]['gain'] / parameters['tx'][1] * txmin,
+   'bc2_ps': parameters['bc'][1]['ps'],
+   'bc3_dcgain': parameters['bc'][2]['gain'] / parameters['tx'][2] * txmin,
+   'bc3_ps': parameters['bc'][2]['ps'],
+   'tx_dcgain': txmin}
+  pprint.pprint(test_params)
+  return test_params
 
 def get_tx_coeff(args_adc, start_gain, max_amp, chantx, chanrx):
   txgain = start_gain / 2
@@ -138,7 +157,7 @@ def phase_min(args_adc, chan, samples=3):
   for phase in np.linspace(0, 360.0/64*63, 64):
     AWG.setPhaseShift(chan, phase, deg=True, oneshot=True)
     amplitude_ps.append(get_trimmed_mean_amp(args_adc, chan, samples=samples))
-    print "PHASE: %d:%d" % (int(phase), int(amplitude_ps[-1]))
+    #print "PHASE: %d:%d" % (int(phase), int(amplitude_ps[-1]))
   fft = np.fft.rfft(np.square(amplitude_ps))
   angle = np.angle(fft[1], deg=True)%360
   minimum = (180 - angle) % 360
@@ -154,7 +173,6 @@ def get_trimmed_mean_amp(args_adc, chan, max_dev=None, samples=3, ref_sample=Non
     if ref_sample != None:
       if abs(sample.compare_phase_shift(ord(chan) - ord('X'), ref_sample)) > np.pi / 2:
         sign = -1
-        print "Negative"
     amps.append(sign * sample.channels[ord(chan) - ord('X')].get_amplitude())
   ADC.stop()
   avg = np.average(amps)
