@@ -7,7 +7,6 @@
 
 
 import os,sys,signal
-import Adafruit_BBIO.GPIO as GPIO
 import spi_awg as AWG
 import analogue_IO
 import setup_BB
@@ -66,7 +65,7 @@ def finish():
   ADC.stop()
 
   analogue_IO.disable() # disable TX
-  GPIO.cleanup() # free GPIO ports
+  AWG.finish() # free GPIO ports
   exit(0)
 
 if __name__ == "__main__":
