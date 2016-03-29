@@ -110,7 +110,7 @@ def getData(addr,label="",output=1):
 	c()
 	out = sendData(addr,0x0000,rx=1)
 	if label != "":
-		logging.debug("[AWG] Result of write command %s=%s" % (label,hex(out)))
+		logging.debug("[AWG] Result of read command %s=%s" % (label,hex(out)))
 	return out
 		
 
