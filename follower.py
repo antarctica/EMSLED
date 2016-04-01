@@ -131,9 +131,10 @@ class follower(object):
           plt.show()
         quit = False
         if selected_freq:
-          bytes_in_block=int(1.0*SPS/selected_freq*100)*4
+          samples_count = int(1.0*SPS/selected_freq*50)
         else:
-          bytes_in_block = 4096*4
+          samples_count = 1024
+        bytes_in_block = samples_count * 16 #4 channels, 4B per sample
 
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         if selected_freq:
@@ -150,7 +151,7 @@ class follower(object):
               plt.axis(axis)
             ostring=""
             for chan in FFTchannels:
-              fft = np.fft.rfft(channels[chan])
+              fft = np.fft.rfft(channels[chan]) / samples_count
 
               #Disregard the DC component.
               fft.real[0] = 0
@@ -169,7 +170,8 @@ class follower(object):
               plt.cla()
 
     def get_sample_freq(self, selected_freq, SPS=40000, dispFFT=False, FFTchannels=[1,2,3], axis=None):
-        bytes_in_block=int(1.0*SPS/selected_freq*100)*4
+        samples_count = int(1.0*SPS/selected_freq*50)
+        bytes_in_block = samples_count * 16 #4 channels, 4B per sample
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         selected_index = np.argmin(np.abs(fftfreq - selected_freq))
         
@@ -184,7 +186,7 @@ class follower(object):
         ref_wave = waveform(selected_freq, np.fft.rfft(channels[0])[selected_index])
         selected_sample = sample(ref_wave)
         for chan in FFTchannels:
-          fft = np.fft.rfft(channels[chan])
+          fft = np.fft.rfft(channels[chan]) / samples_count
           chan_wave=waveform(selected_freq, fft[selected_index])
           selected_sample.add_channel(chan_wave)
         return selected_sample
