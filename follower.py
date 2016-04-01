@@ -29,6 +29,7 @@ class follower(object):
             pru_dataram = pypruss.PRUSS0_PRU1_DATARAM
 
         self._spare = 0
+        self._ofile = None
 
         logging.debug("[ADC] setting up power control line")
         GPIO.setup("P9_18",GPIO.OUT)
@@ -84,6 +85,7 @@ class follower(object):
     def power_off(self=None):
         logging.debug("[ADC] Powering the ADC off")
         GPIO.output("P9_18",GPIO.LOW)
+        self.close_file()
 
     def stop(self):
         pypruss.pru_disable(0)
@@ -122,12 +124,15 @@ class follower(object):
 
         return result
 
+    def close_file(self):
+        if self._ofile:
+          self._ofile.close()
     #SPS: Samples Per Second, this must be calibrated
     def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3], selected_freq=None, raw_file=""):
         if raw_file != "":
           # Disable displaying anything if we're writing to a file
           dispFFT = False
-          ofile = open(raw_file, "w")
+          self._ofile = open(raw_file, "w")
 
         if dispFFT:
           import matplotlib
@@ -154,7 +159,7 @@ class follower(object):
             #Invert dimensions
             channels = np.transpose(samples)
             if raw_file != "":
-              np.savez(ofile, desc={"time": time.time(), "lat": 77.464811, "lon": 69.217266  }, chans=channels)
+              np.save(self._ofile, {"time": time.time(), "lat": 77.464811, "lon": 69.217266, "chans": channels})
               continue
             if axis != None and dispFFT and self._spare:
               plt.axis(axis)
