@@ -68,7 +68,7 @@ def calibrate():
   logging.info("[CALIBRATION] Starting calibration procedure")
   global ADC
   target_coeff = 1
-  max_amp = 1e11
+  max_amp = 2**30 #Maximum signed int value / 2
   target_snr = 2
   parameters = {'bc': [], 'tx': []}
   args_adc = config.hardware['ADC'].copy()
