@@ -176,7 +176,7 @@ class follower(object):
               plt.pause(0.001)
               plt.cla()
 
-    def get_sample_freq(self, selected_freq, SPS=40000, dispFFT=False, FFTchannels=[1,2,3], axis=None):
+    def get_sample_freq(self, selected_freq, SPS=40000, dispFFT=False, FFTchannels=[1,2,3], axis=None, raw_file=""):
         samples_count = int(1.0*SPS/selected_freq*50)
         bytes_in_block = samples_count * 16 #4 channels, 4B per sample
         fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
