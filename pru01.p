@@ -144,7 +144,7 @@ loop_label:
 		
 		MOV r30.b0, 0x02
 
-                LSL rSamp0, rSamp0, 8   //Make the 24 data a 32 bit signed integer
+    LSL rSamp0, rSamp0, 8   //Make the 24 data a 32 bit signed integer
 
 		// Store sample at head and advance head
 		ST32      rSamp0, rHeadPtr               // 2
@@ -154,11 +154,11 @@ loop_label:
 		
 	 	SUB channels, channels, 1
 	    // Update sram with new head
-	    ST32      rHeadPtr, rHeadPtrPtr          // 2
+    ST32      rHeadPtr, rHeadPtrPtr          // 2
 
 	QBNE CHANNEL_LOOP, channels, 0
 
 
     // Goto top of main loop
-    JMP       loop_label                     // 1
+  JMP       loop_label                     // 1
 

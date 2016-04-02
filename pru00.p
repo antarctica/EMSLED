@@ -127,7 +127,7 @@ loop_label:
     AND       r2, r2, rTailMask                           // 1
     QBEQ      loop_label, r2, rNextPtr                    // 1
 
-    // Load pru data from sram tail and advance^M
+    // Load pru data from sram tail and advance
     LBBO      rSamp0,   rTailPtr, 0, 32                   // 2+8 = 10
     ADD       rTailPtr, rTailPtr, 32                      // 1
     AND       rTailPtr, rTailPtr, rTailMask               // 1
