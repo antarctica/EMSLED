@@ -10,7 +10,7 @@ import os
 
 class follower(object):
 
-    PRU_MAX_LONG_SAMPLES  =   0x0003ffff
+    PRU_MAX_LONG_SAMPLES  =   0x00040000
     PRU0_OFFSET_SRAM_HEAD =   0x1000
     PRU0_OFFSET_DRAM_PBASE =  0x1004
     PRU0_OFFSET_SPIN_COUNT =  0x1008
@@ -107,7 +107,7 @@ class follower(object):
         # (self.PRU_MAX_LONG_SAMPLES) should be a multiple of bytes_in_block
         # This allows for much simpler code
         head_offset = self._tail
-        if (head_offset + bytes_in_block) > self.PRU_MAX_LONG_SAMPLES:
+        if (head_offset + bytes_in_block - 1) > self.PRU_MAX_LONG_SAMPLES:
           head_offset=0
 
         self._spare = 0
@@ -121,7 +121,7 @@ class follower(object):
 
         # dtype='4<u4' means an array of dimension 4 of 4 unsigned integer written in little endian
         # (16 bytes per row, hence the /16 for the offsets and counts)
-        result = np.frombuffer(self._extmem, dtype='4<i4', count=bytes_in_block/16, offset=head_offset/16)
+        result = np.frombuffer(self._extmem, dtype='4<i4', count=bytes_in_block/16, offset=head_offset)
         result.dtype = np.int32
 
         self._tail = (head_offset + bytes_in_block) % self.PRU_MAX_LONG_SAMPLES
