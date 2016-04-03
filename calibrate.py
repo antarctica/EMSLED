@@ -75,7 +75,7 @@ def calibrate():
   args_adc = config.hardware['ADC'].copy()
   args_adc.update({'selected_freq': config.test_params['tx_freq']})
   zero_gains()
-  analogue_IO.enable(gain = 2)
+  analogue_IO.enable(**config.hardware['IO'])
   for chan in ["X", "Y", "Z"]:
     logging.info("[CALIBRATION] - Calibration, searching channel %s", chan)
     ADC = follower.follower()
