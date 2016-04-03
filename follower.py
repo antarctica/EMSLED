@@ -146,13 +146,10 @@ class follower(object):
           plt.ion()
           plt.show()
         quit = False
-        #if selected_freq:
-        #  samples_count = int(1.0*SPS/selected_freq*50)
-        #else:
         samples_count = 4096
         bytes_in_block = samples_count * 16 #4 channels, 4B per sample
 
-        fftfreq = np.fft.rfftfreq(bytes_in_block/16, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
+        fftfreq = np.fft.rfftfreq(samples_count, d=1.0/SPS) # /16 -> /4 channels /4 bytes per channel
         if selected_freq:
           selected_index = np.argmin(np.abs(fftfreq - selected_freq))
 
