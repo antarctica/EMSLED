@@ -76,16 +76,17 @@ def calibrate():
   args_adc.update({'selected_freq': config.test_params['tx_freq']})
   zero_gains()
   analogue_IO.enable(**config.hardware['IO'])
+  calib_metadata=dict()
   for chan in ["X", "Y", "Z"]:
     logging.info("[CALIBRATION] - Calibration, searching channel %s", chan)
     ADC = follower.follower()
     ADC.power_on()
-    amplitude_tx = noise_level = get_trimmed_mean_amp(args_adc, chan, samples=10, max_dev=1.0)
+    noise_level = get_trimmed_mean_amp(args_adc, chan, samples=10, max_dev=1.0)
     ADC.stop()
     logging.debug("[CALIBRATION] - Noise level = %f", noise_level)
     logging.debug("[CALIBRATION] - Find tx_coeff (what's the read amplitude it the current channel for a tx gain of 1)")
-    tx_coeff = get_tx_coeff(args_adc, 0.001, max_amp, 'tx', chan)
-    test_tx_gain = min(target_coeff, 0.5 * max_amp / tx_coeff)
+    tx_coeff = get_tx_coeff(args_adc, 0.0001, max_amp, 'tx', chan, noise_level)
+    test_tx_gain = min(target_coeff, 0.3 * max_amp / tx_coeff)
     logging.debug("[CALIBRATION] - test_tx_gain = %f, tx_coeff = %f", test_tx_gain, tx_coeff)
     ADC = follower.follower()
     ADC.power_on()
@@ -93,7 +94,7 @@ def calibrate():
     ADC.stop()
     AWG.setGain('tx', 0, oneshot=True)
     logging.debug("[CALIBRATION] - Find bc_coeff (what's the read amplitude it the current channel for a bucking gain of 1)")
-    bc_coeff = get_tx_coeff(args_adc, 0.001, max_amp, chan, chan)
+    bc_coeff = get_tx_coeff(args_adc, 0.0001, max_amp, chan, chan, noise_level)
     test_bc_gain = min(target_coeff, 0.7 * test_tx_gain * tx_coeff / bc_coeff, 0.3 * max_amp / bc_coeff)
     logging.debug("[CALIBRATION] - test_bc_gain = %f, bc_coeff = %f", test_bc_gain, bc_coeff)
     logging.debug("[CALIBRATION] - Use the coefficients we've found to find the best phase shift")
@@ -104,7 +105,9 @@ def calibrate():
     best_phase = phase_min(args_adc, chan, samples=5)
     logging.info("[CALIBRATION] - Channel %s first pass results: tx=%f, bc=%f @ %f deg", chan, test_tx_gain, test_bc_gain, best_phase)
     # Now for the fine tuning:
-    while True:
+    old_res = max_amp
+    sig_test = -1
+    for iter in range(10):
       if tx_coeff <= bc_coeff:
         tx_gain = target_coeff
         bc_gain = target_coeff * tx_coeff / bc_coeff
@@ -119,12 +122,15 @@ def calibrate():
       AWG.run()
       current_amp = get_trimmed_mean_amp(args_adc, chan, ref_sample=waveform_tx_only)
       logging.debug("[CALIBRATION] - Bucking gain = %f, TX gain = %f, residual amp = %f" , bc_gain, tx_gain, current_amp)
-      if abs(current_amp) > target_snr * noise_level:
+      if abs(old_res) < abs(current_amp):
+        sig_test *= -1
+      old_res = current_amp
+      if abs(current_amp) > target_snr * noise_level and iter < 10:
         #We still have work to do then...
         if tx_coeff <= bc_coeff:
-          bc_coeff = (abs((target_coeff * tx_coeff) -  current_amp) / bc_gain + bc_coeff) / 2
+          bc_coeff = (abs((target_coeff * tx_coeff) + sig_test * current_amp) / bc_gain + bc_coeff) / 2
         else:
-          tx_coeff = (abs((target_coeff * bc_coeff) -  current_amp) / tx_gain + tx_coeff) / 2
+          tx_coeff = (abs((target_coeff * bc_coeff) + sig_test * current_amp) / tx_gain + tx_coeff) / 2
         logging.debug("[CALIBRATION] - tx_coeff = %f, bc_coeff = %f", tx_coeff, bc_coeff)
       else:
         #We found acceptable parameters!
@@ -132,6 +138,20 @@ def calibrate():
         parameters['tx'].append(tx_gain)
         parameters['bc'].append({'gain': bc_gain, 'ps': best_phase})
         break
+    # Record some metadata:
+    if not calib_metadata.has_key("noise_level"):
+      calib_metadata["noise_level"] = dict()
+    if not calib_metadata.has_key("coeffs"):
+      calib_metadata["coeffs"] = {'tx': dict(), 'bc': dict()}
+    calib_metadata["coeffs"]["tx"][chan] = tx_coeff
+    calib_metadata["coeffs"]["bc"][chan] = bc_coeff
+    calib_metadata["noise_level"][chan] = noise_level
+    if not calib_metadata.has_key("no_bucking_ps"):
+      calib_metadata["no_bucking_ps"] = dict()
+      for rec_chan in ["X", "Y", "Z"]:
+        calib_metadata["no_bucking_ps"][rec_chan] = waveform_tx_only.get_phase_shift(ord(rec_chan) - ord('X'), deg=True)
+  
+  parameters["metadata"] = calib_metadata
   params = print_parameters(parameters)
   filename = time.strftime(str(config.test_params['tx_freq']) + "Hz_%Y%m%d-%H%M%S.calib")
   f = open(filename, 'w')
@@ -153,17 +173,24 @@ def print_parameters(parameters):
    'bc2_ps': parameters['bc'][1]['ps'],
    'bc3_dcgain': parameters['bc'][2]['gain'] / parameters['tx'][2] * txmin,
    'bc3_ps': parameters['bc'][2]['ps'],
-   'tx_dcgain': txmin}
+   'tx_dcgain': txmin,
+   'metadata': parameters['metadata']}
   pprint.pprint(test_params)
   return test_params
 
-def get_tx_coeff(args_adc, start_gain, max_amp, chantx, chanrx):
+def get_tx_coeff(args_adc, start_gain, max_amp, chantx, chanrx, noise_level):
   txgain = start_gain / 2
-  amplitude_tx = 0
+  previous_tx = amplitude_tx = 0
   while txgain < 1 and amplitude_tx < max_amp / 2:
     txgain = min(2 * txgain, 1)
     AWG.setGain(chantx, txgain, oneshot=True)
     amplitude_tx = get_trimmed_mean_amp(args_adc, chanrx, samples=10)
+    if amplitude_tx < previous_tx and amplitude_tx > 2 * noise_level:
+      logging.debug("[CALIBRATION] - Saturation detected, jumping back. tx=%f, amp=%f", txgain, amplitude_tx)
+      txgain /= 3
+      previous_tx = 0
+    else:
+      previous_tx = amplitude_tx
     #print "CALIBRATION tx=%f,am=%f" % (txgain, amplitude_tx)
   return amplitude_tx / txgain
   
