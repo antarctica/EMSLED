@@ -41,6 +41,12 @@ def startup():
     content = f.read()
     f.close()
     args.update(eval(content))
+    metadata = args.pop("metadata")
+    if not config.hardware["ADC"]["raw_file"] == "":
+      f = open("%s.metadata" % (config.hardware["ADC"]["raw_file"]), "w")
+      f.write(str(metadata))
+      f.close()
+
 
   logging.info("[LOGGER] Starting the AWG")
   AWG.configure2SineWave(**args) # configure for 2 sinewaves
