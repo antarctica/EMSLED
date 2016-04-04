@@ -6,6 +6,7 @@ import time
 from sample import sample,waveform
 import logging
 import os
+from gpspoller import GpsPoller
 
 
 class follower(object):
@@ -30,6 +31,7 @@ class follower(object):
 
         self._spare = 0
         self._ofile = None
+        self._gpsp = None
 
         logging.debug("[ADC] setting up power control line")
         GPIO.setup("P9_18",GPIO.OUT)
@@ -88,6 +90,7 @@ class follower(object):
         logging.debug("[ADC] Powering the ADC off")
         GPIO.output("P9_18",GPIO.LOW)
         self.close_file()
+        self.stop_gps_polling()
 
     def stop(self):
         logging.debug("[ADC] Stopping the PRUs")
@@ -132,12 +135,19 @@ class follower(object):
         if self._ofile:
           self._ofile.close()
 
+    def stop_gps_polling(self):
+        if self._gpsp:
+          self._gpsp.running = False
+          self._gpsp.join() # wait for the thread to finish what it's doing
+
     #SPS: Samples Per Second, this must be calibrated
     def follow_stream(self, SPS=40000, dispFFT=False, axis=[0,15000,-1e12,1e12], FFTchannels=[1,2,3], selected_freq=None, raw_file=""):
         if raw_file != "":
           # Disable displaying anything if we're writing to a file
           dispFFT = False
           self._ofile = open(raw_file, "w")
+          self._gpsp = GpsPoller()
+          self._gpsp.start()
 
         if dispFFT:
           import matplotlib
@@ -160,7 +170,7 @@ class follower(object):
             #Invert dimensions
             channels = np.transpose(samples)
             if raw_file != "":
-              np.save(self._ofile, {"time": time.time(), "lat": 77.464811, "lon": 69.217266, "chans": channels})
+              np.save(self._ofile, {"time": time.time(), "lat": self._gpsp.gpsd.fix.latitude, "lon": self._gpsp.gpsd.fix.longitude, "chans": channels})
               continue
             if axis != None and dispFFT and self._spare:
               plt.axis(axis)
