@@ -7,6 +7,8 @@
 #define PRU0_ARM_INTERRUPT 19
 
 #define data r2
+#define data_size r3
+#define data_offset r4
 #define bits r9
 #define delay r10
 #define rSamp0       r13
@@ -44,11 +46,29 @@ START:
     MOV bits, 0x00000000
     AND r1, data, r10                   // Applies the bit mask to get the mode (read or write)
     QBEQ WRITE, r1, 0                   // if r1 == 0 go to write mode 
+    QBEQ WSRAM, r1, 0xef                // we're trying to write to the SRAM
     QBA READ                            // else go to label read
+
+WSRAM:
+    MOV data_size, data.w1
+    MOV data_offset, 0
+    loop_bytes:
+        SUB data_size, data_size, 2
+        MOV data.w0, data_offset.w1
+        ADD data_offset, data_offset, 1
+        OR data.b0, data.b0, 0xe0
+        LBBO data.w1, r0, data_offset, 2
+        MOV bits, 32
+        CALL SEND
+        QBNE loop_bytes, data_size, 0
+    QBA FINISH
+    
+    
     
 WRITE:
     MOV bits, 32                        // Initialises r9/bits to 32, the number of bits we want to write
-    QBA SEND                            // Jumps to label SEND
+    CALL SEND                            // Jumps to label SEND
+    QBA FINISH
     
 READ:
     MOV bits, 16                        // Initialises r9/bits to 16, the number of bits we want to write (just a 16bit read command)
@@ -73,7 +93,7 @@ SEND:                                   // This routine is common to read and wr
         QBNE loop_start, bits, 0        // Unless we have sent all the bits we wanted to send, loop back to the loop_start label
 
      QBNE READ2, r1, 0                  // If we're in read mode, read the result of the command
-     QBA FINISH                         // Else we're done...
+     RET                                // Else we're done...
      
 READ2:
     MOV bits, 16                        // Initialises r9/bits to 16, the number of bits we want to read
