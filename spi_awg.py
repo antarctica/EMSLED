@@ -97,7 +97,7 @@ def writeData(addr,value,label="",validate=1):
 		sendData(0x1D,0x0001)
 		c()
 		out = sendData(addr,0x0000,rx=1)
-	        if out==value:
+	        if out==value or not validate:
                   logging.debug("[AWG] Write command successful '%s', Sent '%s', Read back '%s'" % (label,hex(value),hex(out)))
                   break
                 elif validate and attempt == tries - 1:
@@ -129,10 +129,10 @@ def getRegisterMap():
 
 def program():
 	GPIO.output("P9_23",GPIO.HIGH)
-	writeData(0x1E,0x0000,label="Program mode")
+	writeData(0x1E,0x0000,label="Program mode", validate=1)
 def run():
 	getData(0x1E,label="Current run mode?")
-	writeData(0x1E,0x0001,label="Run mode")
+	writeData(0x1E,0x0001,label="Run mode", validate=1)
 	trigger()
 	getData(0x1E,label="Current run mode?")
 
