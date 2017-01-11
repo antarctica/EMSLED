@@ -14,14 +14,15 @@ GPIO.output("P9_16",GPIO.LOW)
 
 
 def enable(gain=3):
-  if gain % 2: 
-    GPIO.output("P9_14",GPIO.HIGH)
-  else:
-    GPIO.output("P9_14",GPIO.LOW)
-  if gain > 1:  
+  # The following looks very weird, but that's just how it's implemented in hardware
+  if gain % 3 == 0:
     GPIO.output("P9_15",GPIO.HIGH)
   else:
     GPIO.output("P9_15",GPIO.LOW)
+  if gain > 1:
+    GPIO.output("P9_14",GPIO.HIGH)
+  else:
+    GPIO.output("P9_14",GPIO.LOW)
   GPIO.output("P9_16",GPIO.HIGH)
 
 def disable():
